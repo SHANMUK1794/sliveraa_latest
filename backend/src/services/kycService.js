@@ -46,12 +46,14 @@ class KycService {
   async createDigiLockerSession(customId) {
     try {
       // Official Digiboost Initialize Payload
-      // Note: Some versions require nesting these inside a 'data' object
+      // Note: Encryption Active (Shield) requires fields to be nested inside 'data'
       const payload = {
-        signup_flow: true,
-        skip_main_screen: false,
-        custom_id: customId,
-        redirect_url: 'https://silvras.com/kyc-callback' // Often required for init config
+        data: {
+          signup_flow: true,
+          skip_main_screen: false,
+          custom_id: customId,
+          redirect_url: 'https://silvras.com/kyc-callback'
+        }
       };
 
       const encryptedData = encryption.encrypt(payload);
