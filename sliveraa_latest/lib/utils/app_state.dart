@@ -111,6 +111,18 @@ class AppState extends ChangeNotifier {
     },
   ];
 
+  Future<void> refreshStatus() async {
+    try {
+      final response = await ApiService().getUserProfile();
+      if (response.data != null) {
+        updateFromMap({'user': response.data});
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Status Refresh Error: $e');
+    }
+  }
+
   void updateFromMap(Map<String, dynamic> data) {
     if (data.containsKey('user')) {
       final user = data['user'];
