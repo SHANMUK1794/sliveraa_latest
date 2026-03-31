@@ -34,7 +34,8 @@ class EncryptionUtils {
       const encrypted = crypto.publicEncrypt(
         {
           key: this.publicKey,
-          padding: crypto.constants.RSA_PKCS1_PADDING, // Standard for Surepass
+          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+          oaepHash: 'sha256',
         },
         buffer
       );

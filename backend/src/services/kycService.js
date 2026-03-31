@@ -18,16 +18,21 @@ class KycService {
     const encryptedData = encryption.encrypt(data);
     if (!encryptedData) throw new Error('Failed to encrypt KYC payload');
 
-    const response = await axios.post(`${this.baseUrl}${path}`, {
-      data: encryptedData
-    }, {
-      headers: {
-        'Authorization': `Bearer ${this.token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    return response.data;
+    try {
+      const response = await axios.post(`${this.baseUrl}${path}`, {
+        data: encryptedData
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Surepass API Error [${path}]:`, error.response?.data || error.message);
+      // Re-throw the error so the controller can catch it
+      throw error;
+    }
   }
 
   /**
@@ -35,10 +40,20 @@ class KycService {
    * @param {string} customId - Unique ID for the session (e.g. userId)
    */
   async createDigiLockerSession(customId) {
-    return await this._post('/digilocker/create-session', {
-      custom_id: customId,
-      redirect_url: 'https://silvras.com/kyc-callback' // Temporary callback
-    });
+    try {
+      // Try the digilocker slug first
+      return await this._post('/digilocker/create-session', {
+        custom_id: customId,
+        redirect_url: 'https://silvras.com/kyc-callback'
+      });
+    } catch (error) {
+      // If that fails, try the digiboost slug seen in your GitHub link
+      console.log('DigiLocker endpoint failed, trying DigiBoost fallback...');
+      return await this._post('/digiboost/create-session', {
+        custom_id: customId,
+        redirect_url: 'https://silvras.com/kyc-callback'
+      });
+    }
   }
 
   /**
