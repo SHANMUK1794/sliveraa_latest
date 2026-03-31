@@ -45,15 +45,22 @@ class KycService {
    */
   async createDigiLockerSession(customId) {
     try {
-      // Official Digiboost Initialize Endpoint
-      const response = await this._post('/digilocker/initialize', {
+      // Official Digiboost Initialize Payload
+      // Note: Some versions require nesting these inside a 'data' object
+      const payload = {
         signup_flow: true,
         skip_main_screen: false,
-        custom_id: customId
+        custom_id: customId,
+        redirect_url: 'https://silvras.com/kyc-callback' // Often required for init config
+      };
+
+      const encryptedData = encryption.encrypt(payload);
+      
+      const response = await this._post('/digilocker/initialize', {
+        sp_data: encryptedData
       });
       
-      // The guide says this returns { data: { token, client_id, ... } }
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Digiboost Initialization Failed:', error.response?.data || error.message);
       throw error;
