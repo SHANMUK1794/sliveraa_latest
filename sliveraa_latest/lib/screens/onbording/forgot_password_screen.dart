@@ -290,19 +290,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    // BYPASS: Direct navigation to dedicated OTP screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ForgotPasswordOtpScreen(
-          phoneNumber: '+91 $phone',
-          intent: 'FORGOT_PASSWORD',
-        ),
-      ),
-    );
-    return;
-
-    // ignore: dead_code
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -314,7 +301,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (cleanPhone.length > 10) cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
 
       // We maintain the backend call structure as previously established
-      await ApiService().sendOtp(cleanPhone, intent: 'FORGOT_PASSWORD');
+      await ApiService().sendOtp(cleanPhone, intent: 'reset-password');
       
       if (mounted) {
         Navigator.pop(context); // Close loading
@@ -323,7 +310,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           MaterialPageRoute(
             builder: (context) => ForgotPasswordOtpScreen(
               phoneNumber: '+91 $phone',
-              intent: 'FORGOT_PASSWORD',
+              intent: 'reset-password',
             ),
           ),
         );
