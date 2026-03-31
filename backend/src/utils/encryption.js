@@ -8,13 +8,11 @@ const path = require('path');
  */
 class EncryptionUtils {
   constructor() {
-    // Path to the public key provided by the user
-    this.publicKeyPath = 'C:\\Users\\user\\Desktop\\SILVRA S\\sandbox_server_key.pem';
-    try {
-      this.publicKey = fs.readFileSync(this.publicKeyPath, 'utf8');
-    } catch (error) {
-      console.error('EncryptionUtils: Failed to read public key at', this.publicKeyPath);
-      this.publicKey = null;
+    this.token = process.env.SUREPASS_API_TOKEN;
+    this.baseUrl = process.env.SUREPASS_BASE_URL || 'https://sandbox.surepass.app/api/v1';
+
+    if (!this.token) {
+      console.warn('KycService: SUREPASS_API_TOKEN not found in environment variables.');
     }
   }
 

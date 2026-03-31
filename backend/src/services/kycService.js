@@ -3,8 +3,12 @@ const encryption = require('../utils/encryption');
 
 class KycService {
   constructor() {
-    this.token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTc3NDg1MTEyOCwianRpIjoiZDc4ZTQzMDUtZjk0NC00NWUwLTk4OTQtYTgwN2I2OWMzM2Y4IiwidHlwZSI6ImFjY2VzcyIsImlkZW50aXR5IjoiZGV2LnNpbHZyYXZlbnVfMTQ4NTA0QHN1cmVwYXNzLmlvIiwibmJmIjoxNzc0ODUxMTI4LCJleHAiOjE3Nzc0NDMxMjgsImVtYWlsIjoic2lsdnJhdmVudV8xNDg1MDRAc3VyZXBhc3MuaW8iLCJ0ZW5hbnRfaWQiOiJtYWluIiwidXNlcl9jbGFpbXMiOnsic2NvcGVzIjpbInVzZXIiXX19.LcNPfaqFxe_hI_IxdRnJ0eEb5Yd9X-H9gxnlvcvVMrs';
-    this.baseUrl = 'https://sandbox.surepass.app/api/v1';
+    this.token = process.env.SUREPASS_API_TOKEN;
+    this.baseUrl = process.env.SUREPASS_BASE_URL || 'https://sandbox.surepass.app/api/v1';
+
+    if (!this.token) {
+      console.warn('KycService: SUREPASS_API_TOKEN not found in environment variables.');
+    }
   }
 
   get isAvailable() {
