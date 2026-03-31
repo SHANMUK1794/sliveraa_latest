@@ -28,8 +28,9 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
     try {
       final response = await ApiService().initDigiLocker();
       
-      // The backend now returns { token, client_id, ... }
-      final String token = response.data['token'] ?? '';
+      // The backend now returns { data: { token, client_id, ... }, status_code: 200 }
+      // So we need to look inside response.data['data']
+      final String token = response.data['data']?['token'] ?? '';
       
       if (token.isEmpty) {
         setState(() {

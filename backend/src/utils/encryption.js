@@ -8,11 +8,22 @@ const path = require('path');
  */
 class EncryptionUtils {
   constructor() {
-    this.token = process.env.SUREPASS_API_TOKEN;
-    this.baseUrl = process.env.SUREPASS_BASE_URL || 'https://sandbox.surepass.app/api/v1';
-
-    if (!this.token) {
-      console.warn('KycService: SUREPASS_API_TOKEN not found in environment variables.');
+    // Read public key and handle potential Railway formatting or naming issues
+    let key = process.env.SUREPASS_PUBLIC_KEY || process.env['SUREPASS PUBLIC KEY'];
+    
+    if (key) {
+      // Fix common issue where newlines are escaped as \n text
+      key = key.replace(/\\n/g, '\n');
+      
+      // Ensure it has the proper headers if they are missing
+      if (!key.includes('-----BEGIN PUBLIC KEY-----')) {
+        key = `-----BEGIN PUBLIC KEY-----\n${key}\n-----END PUBLIC KEY-----`;
+      }
+      this.publicKey = key;
+      console.log('EncryptionUtils: Public key loaded and formatted.');
+    } else {
+      console.warn('EncryptionUtils: SUREPASS_PUBLIC_KEY not found in environment variables.');
+      this.publicKey = null;
     }
   }
 
