@@ -410,12 +410,14 @@ class _KycScreenState extends State<KycScreen> {
                 child: Icon(icon, color: const Color(0xFF94A3B8), size: 24),
               ),
               const SizedBox(width: 16),
-              Text(
-                label,
-                style: GoogleFonts.manrope(
-                  fontSize: 14, 
-                  fontWeight: FontWeight.w700, 
-                  color: const Color(0xFF1E293B)
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.manrope(
+                    fontSize: 14, 
+                    fontWeight: FontWeight.w700, 
+                    color: const Color(0xFF1E293B)
+                  ),
                 ),
               ),
             ],
