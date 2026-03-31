@@ -199,13 +199,30 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Aadhaar Verification',
+          'Verification',
           style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            // Smart Close: If they close it, we try to finalize anyway just in case
+            _onVerificationComplete();
+          },
         ),
+        actions: [
+          if (!_isLoading)
+            TextButton(
+              onPressed: _onVerificationComplete,
+              child: Text(
+                'I HAVE COMPLETED',
+                style: GoogleFonts.manrope(
+                  color: Colors.blue,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
       ),
       body: Stack(
         children: [
