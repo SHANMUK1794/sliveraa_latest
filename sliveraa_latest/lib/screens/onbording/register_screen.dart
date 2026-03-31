@@ -194,7 +194,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFFD1D5DB)),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
-                      validator: (v) => v!.length < 6 ? 'Password too short' : null,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Password is required';
+                        if (v.length < 8) return 'Password must be at least 8 characters';
+                        if (!RegExp(r'[A-Z]').hasMatch(v)) return 'Must include an uppercase letter';
+                        if (!RegExp(r'[a-z]').hasMatch(v)) return 'Must include a lowercase letter';
+                        if (!RegExp(r'[0-9]').hasMatch(v)) return 'Must include a number';
+                        if (!RegExp(r'[^A-Za-z0-9]').hasMatch(v)) return 'Must include a special character';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 24),
 
@@ -454,7 +462,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         // Remove non-digit characters
         cleanPhone = cleanPhone.replaceAll(RegExp(r'\D'), '');
         
-        await ApiService().sendOtp(cleanPhone, intent: 'register');
+        await ApiService().sendOtp(
+          cleanPhone, 
+          intent: 'register', 
+          email: _emailController.text.trim(),
+        );
         
         if (mounted) {
           Navigator.pop(context); // Close loading

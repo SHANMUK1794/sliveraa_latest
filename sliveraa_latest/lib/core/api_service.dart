@@ -52,10 +52,11 @@ class ApiService {
     });
   }
 
-  Future<Response> sendOtp(String phone, {String? intent}) async {
+  Future<Response> sendOtp(String phone, {String? intent, String? email}) async {
     return await _dio.post('auth/send-otp', data: {
       'phone': phone,
       'intent': intent,
+      'email': email,
     });
   }
 

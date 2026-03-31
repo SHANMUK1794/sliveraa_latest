@@ -14,7 +14,21 @@ class AuthController {
     }
     try {
       const validated = sendOtpSchema.parse(req.body);
-      const { phone, intent } = validated;
+      const { phone, intent, email } = validated;
+
+      // Duplicate Check (Early UX optimization)
+      if (intent === 'register') {
+        const user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+        if (user) {
+          return res.status(400).json({ error: 'Account exists', message: 'An account with this phone number already exists' });
+        }
+        if (email) {
+          const emailCheck = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+          if (emailCheck) {
+            return res.status(400).json({ error: 'Email exists', message: 'An account with this email address already exists' });
+          }
+        }
+      }
 
       // 1. Generate 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
