@@ -6,12 +6,12 @@ class ApiService {
   // Automatically detect machine IP or localhost
   // Automatically switch between local and production
   static String get _baseUrl {
-    // Local development/testing URL
-    // Ensure this matches your computer's local IP for mobile device connectivity
+    // Railway Production URL
+    const productionUrl = 'https://sliveraalatest-production.up.railway.app';
     
-    // Developer Local IP / Windows Localhost
-    final ip = (!kIsWeb && Platform.isWindows) ? 'localhost' : '10.102.114.186';
-    return 'http://$ip:3000/api/';
+    // Use localhost for Windows development, otherwise use Production
+    final baseUrl = (!kIsWeb && Platform.isWindows) ? 'http://localhost:3000' : productionUrl;
+    return '$baseUrl/api/';
   }
 
   final Dio _dio = Dio(BaseOptions(
