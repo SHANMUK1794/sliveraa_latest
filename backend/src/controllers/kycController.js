@@ -133,11 +133,77 @@ class KycController {
   async initDigiLocker(req, res) {
     try {
       const userId = req.user?.userId;
+
+      // 1. Check if user is already verified
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { kycStatus: true }
+      });
+
+      if (user?.kycStatus === 'VERIFIED') {
+        return res.status(400).json({ 
+          error: 'KYC Already Completed', 
+          message: 'You have already verified your documents successfully' 
+        });
+      }
+
       const response = await kycService.createDigiLockerSession(userId);
       res.json(response);
     } catch (error) {
       console.error('Init DigiLocker Error:', error.message);
       res.status(500).json({ error: 'Failed to initialize DigiLocker session', message: error.message });
+    }
+  }
+
+  /**
+   * Finalize DigiLocker Verification (Step 3)
+   * This is called by the frontend after SDK SUCCESS callback
+   */
+  async finalizeDigiLocker(req, res) {
+    try {
+      const { userId } = req.user;
+      const { clientId } = req.body;
+
+      if (!clientId) {
+        return res.status(400).json({ error: 'Input required', message: 'Client ID is required to fetch results' });
+      }
+
+      const response = await kycService.getDigiLockerResult(clientId);
+
+      // Status check: Surepass returns success if the document is downloaded
+      if (response.success || response.status_code === 200) {
+        await prisma.$transaction([
+          prisma.kycDetail.upsert({
+            where: { userId },
+            update: {
+              status: 'VERIFIED',
+              verifiedAt: new Date(),
+              rawResponse: response
+            },
+            create: {
+              userId,
+              documentType: 'AADHAAR', // DigiLocker is usually Aadhaar
+              documentNumber: 'DIGILOCKER_FETCHED',
+              status: 'VERIFIED',
+              verifiedAt: new Date(),
+              rawResponse: response
+            }
+          }),
+          prisma.user.update({
+            where: { id: userId },
+            data: { kycStatus: 'VERIFIED' }
+          })
+        ]);
+        return res.json({ success: true, message: 'KYC results finalized and stored', data: response.data });
+      }
+
+      return res.status(400).json({ 
+        error: 'Verification incomplete', 
+        message: 'Surepass did not return a successful verification status' 
+      });
+    } catch (error) {
+      console.error('Finalize DigiLocker Error:', error.message);
+      res.status(500).json({ error: 'Failed to finalize verification', message: error.message });
     }
   }
 

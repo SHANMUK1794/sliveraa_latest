@@ -98,6 +98,25 @@ class KycService {
       id_number: idNumber
     });
   }
+
+  /**
+   * Fetch DigiLocker Verification Result 
+   * (Standard download-aadhaar API after WebSDK success)
+   */
+  async getDigiLockerResult(clientId) {
+    try {
+      const response = await axios.get(`${this.baseUrl}/digilocker/download-aadhaar/${clientId}`, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Surepass Result Fetch Failed:', error.response?.data || error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new KycService();

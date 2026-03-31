@@ -155,7 +155,9 @@ class ApiService {
     });
   }
 
-  Future<Response> checkKycStatus() async {
-    return await _dio.get('kyc/status');
+  Future<Response> finalizeDigiLocker(String clientId) async {
+    return await _dio.post('kyc/digilocker/finalize', data: {
+      'clientId': clientId,
+    });
   }
 }
