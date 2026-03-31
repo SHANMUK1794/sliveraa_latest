@@ -2,8 +2,20 @@ const axios = require('axios');
 
 class KycService {
   constructor() {
-    this.token = process.env.SUREPASS_API_TOKEN;
-    this.baseUrl = process.env.SUREPASS_SBT_BASE_URL || 'https://sandbox.surepass.app/api/v1';
+    const { SUREPASS_API_TOKEN, SUREPASS_SBT_BASE_URL } = process.env;
+
+    if (SUREPASS_API_TOKEN) {
+      this.token = SUREPASS_API_TOKEN;
+      this.baseUrl = SUREPASS_SBT_BASE_URL || 'https://sandbox.surepass.app/api/v1';
+    } else {
+      this.token = null;
+      this.baseUrl = null;
+      console.warn('KycService: SUREPASS_API_TOKEN not set. KYC verification features are disabled.');
+    }
+  }
+
+  get isAvailable() {
+    return this.token !== null;
   }
 
   /**
@@ -12,6 +24,9 @@ class KycService {
    * @returns {Promise<any>}
    */
   async verifyAadhaar(idNumber) {
+    if (!this.token) {
+      throw new Error('KYC service is not configured');
+    }
     try {
       const response = await axios.post(`${this.baseUrl}/aadhaar-v2/generate-otp`, {
         id_number: idNumber
@@ -35,6 +50,9 @@ class KycService {
    * @returns {Promise<any>}
    */
   async submitAadhaarOtp(clientId, otp) {
+    if (!this.token) {
+      throw new Error('KYC service is not configured');
+    }
     try {
       const response = await axios.post(`${this.baseUrl}/aadhaar-v2/submit-otp`, {
         client_id: clientId,
@@ -58,6 +76,9 @@ class KycService {
    * @returns {Promise<any>}
    */
   async verifyPan(idNumber) {
+    if (!this.token) {
+      throw new Error('KYC service is not configured');
+    }
     try {
       const response = await axios.post(`${this.baseUrl}/pan/pan-verification`, {
         id_number: idNumber

@@ -9,6 +9,9 @@ class AuthController {
    * Send OTP (Flutter uses 'phone' field)
    */
   async sendOtp(req, res) {
+    if (!otpService.isAvailable) {
+      return res.status(501).json({ error: 'Not Implemented', message: 'OTP service is not configured' });
+    }
     try {
       const validated = sendOtpSchema.parse(req.body);
       const { phone, intent } = validated;

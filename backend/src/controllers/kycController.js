@@ -8,6 +8,9 @@ class KycController {
    * Flutter payload: userId, idType, idNumber
    */
   async startKyc(req, res) {
+    if (!kycService.isAvailable) {
+      return res.status(501).json({ error: 'Not Implemented', message: 'KYC service is not configured' });
+    }
     try {
       // Standardize input
       const data = {
@@ -84,6 +87,9 @@ class KycController {
    * Submit Aadhaar OTP (Step 2)
    */
   async submitAadhaarOtp(req, res) {
+    if (!kycService.isAvailable) {
+      return res.status(501).json({ error: 'Not Implemented', message: 'KYC service is not configured' });
+    }
     try {
       const { userId } = req.user;
       const { clientId, otp } = req.body;
