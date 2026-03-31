@@ -60,14 +60,16 @@ class ApiService {
   }
 
   Future<Response> verifyOtp(String phone, String code, {String? name, String? email, String? intent, String? password}) async {
-    return await _dio.post('auth/verify-otp', data: {
+    final Map<String, dynamic> data = {
       'phone': phone,
       'code': code,
-      'name': name,
-      'email': email,
       'intent': intent,
-      'password': password,
-    });
+    };
+    if (name != null) data['name'] = name;
+    if (email != null) data['email'] = email;
+    if (password != null) data['password'] = password;
+    
+    return await _dio.post('auth/verify-otp', data: data);
   }
 
   // Profile & Transactions
