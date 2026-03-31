@@ -49,10 +49,7 @@ class KycService {
       const payload = {
         data: {
           signup_flow: true,
-          skip_main_screen: false,
-          // custom_id is not required by docs but useful for tracking if the API allows it
-          custom_id: typeof customId === 'object' ? (customId.id || customId.userId || JSON.stringify(customId)) : String(customId),
-          redirect_url: 'https://silvras.com/kyc-callback'
+          skip_main_screen: false
         }
       };
 
