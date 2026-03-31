@@ -44,8 +44,37 @@ const comparePassword = async (password, hash) => {
   return await bcrypt.compare(password, hash);
 };
 
+/**
+ * Generates a unique referral code in the format SILVRA-XXXX.
+ * 
+ * @param {object} prisma 
+ * @returns {Promise<string>}
+ */
+const generateReferralCode = async (prisma) => {
+  let isUnique = false;
+  let referralCode = '';
+  
+  while (!isUnique) {
+    // Generate 4 random digits
+    const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
+    referralCode = `SILVRA-${randomDigits}`;
+    
+    // Check uniqueness in database
+    const existing = await prisma.user.findUnique({
+      where: { referralCode }
+    });
+    
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+  
+  return referralCode;
+};
+
 module.exports = {
   validatePassword,
   hashPassword,
-  comparePassword
+  comparePassword,
+  generateReferralCode
 };

@@ -28,6 +28,11 @@ class AuthController {
             return res.status(400).json({ error: 'Email exists', message: 'An account with this email address already exists' });
           }
         }
+      } else if (intent === 'login') {
+        const user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
+        if (!user) {
+          return res.status(404).json({ error: 'Not found', message: 'No account found with this phone number. Please register first.' });
+        }
       }
 
       // 1. Generate 6-digit code
@@ -109,13 +114,15 @@ class AuthController {
         }
 
         const hashedPassword = password ? await authUtils.hashPassword(password) : null;
+        const referralCode = await authUtils.generateReferralCode(prisma);
 
         user = await prisma.user.create({
           data: {
             phoneNumber: phone,
             name: name || `User ${phone.slice(-4)}`,
             email: email ? email.toLowerCase() : null,
-            password: hashedPassword
+            password: hashedPassword,
+            referralCode
           }
         });
       } else if (intent === 'reset-password') {
@@ -133,25 +140,7 @@ class AuthController {
       } else {
         // Standard login intent
         if (!user) {
-          // Auto-registration for login if no account exists (legacy support)
-          if (email) {
-            const emailLower = email.toLowerCase();
-            const emailCheck = await prisma.user.findUnique({ where: { email: emailLower } });
-            if (emailCheck) {
-              return res.status(400).json({ 
-                error: 'Email exists', 
-                message: 'An account with this email address already exists' 
-              });
-            }
-          }
-          
-          user = await prisma.user.create({
-            data: {
-              phoneNumber: phone,
-              name: name || `User ${phone.slice(-4)}`,
-              email: email ? email.toLowerCase() : null
-            }
-          });
+          return res.status(404).json({ error: 'Not found', message: 'Account not found. Please register first.' });
         }
       }
 
@@ -170,7 +159,8 @@ class AuthController {
           id: user.id,
           name: user.name,
           email: user.email,
-          phoneNumber: user.phoneNumber
+          phoneNumber: user.phoneNumber,
+          referralCode: user.referralCode
         }
       });
     } catch (error) {
