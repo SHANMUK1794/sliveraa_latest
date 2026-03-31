@@ -15,20 +15,28 @@ class EncryptionUtils {
       try {
         console.log('EncryptionUtils: Attempting to decode Public Key...');
         
-        // 1. Deep clean: fix escaped newlines and trim whitespace
+        // 1. Aggressive clean: Fix escaped newlines, remove quotes, and trim
         let cleanedKey = rawKey.replace(/\\n/g, '\n')
                                .replace(/\\r/g, '')
+                               .replace(/"/g, '') // Remove double quotes
+                               .replace(/'/g, '') // Remove single quotes
                                .trim();
         
-        // 2. Ensure standard SPKI headers if totally naked base64 is provided
+        console.log(`EncryptionUtils: Cleaned Key Length: ${cleanedKey.length} chars`);
+
+        // 2. Ensure standard SPKI headers if totally naked base64
         if (!cleanedKey.startsWith('-----BEGIN')) {
-          console.log('EncryptionUtils: Adding missing PEM headers...');
-          cleanedKey = `-----BEGIN PUBLIC KEY-----\n${cleanedKey}\n-----END PUBLIC KEY-----`;
+          console.log('EncryptionUtils: Wrapping naked base64 in PEM headers...');
+          // Remove ALL whitespace from raw base64 before wrapping
+          const nakedBase64 = cleanedKey.replace(/\s/g, '');
+          cleanedKey = `-----BEGIN PUBLIC KEY-----\n${nakedBase64}\n-----END PUBLIC KEY-----`;
         }
 
-        // 3. Use crypto.createPublicKey for robust decoding
-        // It automatically handles PKCS#1, PKCS#8, and SPKI formats
-        this.publicKey = crypto.createPublicKey(cleanedKey);
+        // 3. Decoding
+        this.publicKey = crypto.createPublicKey({
+          key: cleanedKey,
+          format: 'pem'
+        });
         
         console.log('EncryptionUtils: RSA Public Key successfully decoded and ready.');
       } catch (err) {
