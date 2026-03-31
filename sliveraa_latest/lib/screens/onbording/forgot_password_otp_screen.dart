@@ -200,12 +200,27 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
                   
                   // Resend Link
                   GestureDetector(
-                    onTap: _secondsRemaining == 0 ? () {
-                      // Resend logic
-                      setState(() {
-                        _secondsRemaining = 45;
-                        _startTimer();
-                      });
+                    onTap: _secondsRemaining == 0 ? () async {
+                      // Actual Resend logic
+                      try {
+                        String cleanPhone = widget.phoneNumber.replaceAll(RegExp(r'\D'), '');
+                        if (cleanPhone.length > 10) cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
+                        
+                        await ApiService().sendOtp(cleanPhone, intent: widget.intent);
+                        
+                        setState(() {
+                          _secondsRemaining = 60;
+                          _startTimer();
+                        });
+                        
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Verification code resent!')),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to resend code: $e')),
+                        );
+                      }
                     } : null,
                     child: Text(
                       'Resend Code',
