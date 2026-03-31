@@ -52,9 +52,10 @@ class OtpService {
           'Content-Type': 'application/json'
         },
       });
+      console.log(`MSG91 Flow Success [${formattedMobile}]:`, JSON.stringify(response.data));
       return response.data;
     } catch (error) {
-      console.error('MSG91 Flow Error:', error.response?.data || error.message);
+      console.error('MSG91 Flow Error:', error.response?.data ? JSON.stringify(error.response.data) : error.message);
       throw new Error('OTP delivery failed');
     }
   }
