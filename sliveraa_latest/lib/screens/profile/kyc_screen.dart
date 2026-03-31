@@ -30,6 +30,15 @@ class _KycScreenState extends State<KycScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    // Refresh status on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().refreshStatus();
+    });
+  }
+
+  @override
   void dispose() {
     _aadhaarController.dispose();
     _panController.dispose();
@@ -45,9 +54,9 @@ class _KycScreenState extends State<KycScreen> {
     Widget body;
     if (isVerifying) {
       body = _buildVerifyingState();
-    } else if (status == 'Verified') {
+    } else if (status.toUpperCase() == 'VERIFIED') {
       body = _buildVerifiedState();
-    } else if (status == 'Pending') {
+    } else if (status.toUpperCase() == 'PENDING') {
       body = _buildPendingState();
     } else if (_isOtpStep) {
       body = _buildOtpVerifyStep();
@@ -666,14 +675,19 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 32),
             Text(
-              'Identity Verified!',
-              style: GoogleFonts.manrope(fontSize: 26, fontWeight: FontWeight.w800, color: const Color(0xFF111827)),
+              'KYC DONE!',
+              style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF16A34A), letterSpacing: 1.5),
             ),
             const SizedBox(height: 12),
             Text(
-              'Hey ${state.userName.isEmpty ? 'Silveraa User' : state.userName}, your account is now fully verified. You can start investing in gold and silver!',
+              'Successfully Verified',
+              style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w700, color: const Color(0xFF111827)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Hey ${state.userName.isEmpty ? 'Silveraa User' : state.userName}, your account is now fully verified. You can start investing in gold and silver without any restrictions!',
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 16, color: const Color(0xFF64748B), height: 1.5),
+              style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF64748B), height: 1.5),
             ),
             const SizedBox(height: 48),
             ElevatedButton(
@@ -683,9 +697,10 @@ class _KycScreenState extends State<KycScreen> {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 64),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                elevation: 0,
               ),
               child: Text(
-                'Start Investing',
+                'GO TO HOME',
                 style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800),
               ),
             ),
