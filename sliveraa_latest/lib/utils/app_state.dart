@@ -17,7 +17,7 @@ class BankAccount {
   });
 }
 
-class AppState {
+class AppState extends ChangeNotifier {
   static final AppState _instance = AppState._internal();
   factory AppState() => _instance;
   AppState._internal();
@@ -27,7 +27,13 @@ class AppState {
   double silverGrams = 0.0;
 
   // KYC Status
-  String kycStatus = "Unverified"; // "Unverified", "Pending", "Verified"
+  String _kycStatus = "Unverified"; // "Unverified", "Pending", "Verified"
+  String get kycStatus => _kycStatus;
+  set kycStatus(String value) {
+    _kycStatus = value;
+    notifyListeners();
+  }
+
   bool get isKycVerified => kycStatus == "Verified";
 
   // User Details

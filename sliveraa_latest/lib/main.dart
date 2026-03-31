@@ -128,6 +128,7 @@ import 'theme/app_colors.dart';
 import 'screens/onbording/onboarding_screen.dart';
 
 import 'core/price_provider.dart';
+import 'utils/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -135,6 +136,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PriceProvider()),
+        ChangeNotifierProvider(create: (_) => AppState()),
       ],
       child: const MyApp(),
     ),

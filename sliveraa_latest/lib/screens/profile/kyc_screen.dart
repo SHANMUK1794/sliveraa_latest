@@ -38,6 +38,24 @@ class _KycScreenState extends State<KycScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch status for reactive updates
+    final status = context.watch<AppState>().kycStatus;
+
+    Widget body;
+    if (isVerifying) {
+      body = _buildVerifyingState();
+    } else if (status == 'Verified') {
+      body = _buildVerifiedState();
+    } else if (status == 'Pending') {
+      body = _buildPendingState();
+    } else if (_isOtpStep) {
+      body = _buildOtpVerifyStep();
+    } else if (isDigiLockerStep) {
+      body = _buildDigiLockerStep();
+    } else {
+      body = _buildManualStep();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
       appBar: AppBar(
@@ -79,11 +97,7 @@ class _KycScreenState extends State<KycScreen> {
           )
         ],
       ),
-      body: isVerifying 
-        ? _buildVerifyingState() 
-        : (_isOtpStep 
-            ? _buildOtpVerifyStep() 
-            : (isDigiLockerStep ? _buildDigiLockerStep() : _buildManualStep())),
+      body: body,
     );
   }
 
@@ -626,6 +640,78 @@ class _KycScreenState extends State<KycScreen> {
                 ),
                 child: Text('Awesome!', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildVerifiedState() {
+    final state = context.read<AppState>();
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFBBF7D0), width: 4),
+              ),
+              child: const Icon(Icons.verified_user_rounded, color: Color(0xFF16A34A), size: 64),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Identity Verified!',
+              style: GoogleFonts.manrope(fontSize: 26, fontWeight: FontWeight.w800, color: const Color(0xFF111827)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Hey ${state.userName.isEmpty ? 'Silveraa User' : state.userName}, your account is now fully verified. You can start investing in gold and silver!',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 16, color: const Color(0xFF64748B), height: 1.5),
+            ),
+            const SizedBox(height: 48),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 64),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+              ),
+              child: Text(
+                'Start Investing',
+                style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPendingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppColors.primaryBrownGold),
+            const SizedBox(height: 32),
+            Text(
+              'Verification in Progress',
+              style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF111827)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'We are finalizing your identity details with Surepass. This shouldn\'t take long.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF64748B), height: 1.5),
             ),
           ],
         ),
