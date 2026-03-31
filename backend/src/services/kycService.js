@@ -40,23 +40,23 @@ class KycService {
   }
 
   /**
-   * Create DigiLocker WebSDK Session
+   * Initialize DigiBoost/DigiLocker WebSDK Session
    * @param {string} customId - Unique ID for the session (e.g. userId)
    */
   async createDigiLockerSession(customId) {
     try {
-      // Try the digilocker slug first
-      return await this._post('/digilocker/create-session', {
-        custom_id: customId,
-        redirect_url: 'https://silvras.com/kyc-callback'
+      // Official Digiboost Initialize Endpoint
+      const response = await this._post('/digilocker/initialize', {
+        signup_flow: true,
+        skip_main_screen: false,
+        custom_id: customId
       });
+      
+      // The guide says this returns { data: { token, client_id, ... } }
+      return response.data;
     } catch (error) {
-      // If that fails, try the digiboost slug seen in your GitHub link
-      console.log('DigiLocker endpoint failed, trying DigiBoost fallback...');
-      return await this._post('/digiboost/create-session', {
-        custom_id: customId,
-        redirect_url: 'https://silvras.com/kyc-callback'
-      });
+      console.error('Digiboost Initialization Failed:', error.response?.data || error.message);
+      throw error;
     }
   }
 
