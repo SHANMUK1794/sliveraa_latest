@@ -9,18 +9,34 @@ const path = require('path');
 class EncryptionUtils {
   constructor() {
     // Read public key and handle potential Railway formatting or naming issues
-    let key = process.env.SUREPASS_PUBLIC_KEY || process.env['SUREPASS PUBLIC KEY'];
+    let rawKey = process.env.SUREPASS_PUBLIC_KEY || process.env['SUREPASS PUBLIC KEY'];
     
-    if (key) {
-      // Fix common issue where newlines are escaped as \n text
-      key = key.replace(/\\n/g, '\n');
-      
-      // Ensure it has the proper headers if they are missing
-      if (!key.includes('-----BEGIN PUBLIC KEY-----')) {
-        key = `-----BEGIN PUBLIC KEY-----\n${key}\n-----END PUBLIC KEY-----`;
+    if (rawKey) {
+      try {
+        console.log('EncryptionUtils: Attempting to decode Public Key...');
+        
+        // 1. Deep clean: fix escaped newlines and trim whitespace
+        let cleanedKey = rawKey.replace(/\\n/g, '\n')
+                               .replace(/\\r/g, '')
+                               .trim();
+        
+        // 2. Ensure standard SPKI headers if totally naked base64 is provided
+        if (!cleanedKey.startsWith('-----BEGIN')) {
+          console.log('EncryptionUtils: Adding missing PEM headers...');
+          cleanedKey = `-----BEGIN PUBLIC KEY-----\n${cleanedKey}\n-----END PUBLIC KEY-----`;
+        }
+
+        // 3. Use crypto.createPublicKey for robust decoding
+        // It automatically handles PKCS#1, PKCS#8, and SPKI formats
+        this.publicKey = crypto.createPublicKey(cleanedKey);
+        
+        console.log('EncryptionUtils: RSA Public Key successfully decoded and ready.');
+      } catch (err) {
+        console.error('EncryptionUtils: CRITICAL - Failed to decode Public Key!');
+        console.error('Error Details:', err.message);
+        console.error('Key Preview:', rawKey.substring(0, 20) + '...' + rawKey.substring(rawKey.length - 10));
+        this.publicKey = null;
       }
-      this.publicKey = key;
-      console.log('EncryptionUtils: Public key loaded and formatted.');
     } else {
       console.warn('EncryptionUtils: SUREPASS_PUBLIC_KEY not found in environment variables.');
       this.publicKey = null;
