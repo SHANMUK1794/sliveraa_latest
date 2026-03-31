@@ -48,7 +48,8 @@ class KycService {
       // Official Digiboost Initialize Payload (Minimal)
       const payload = {
         data: {
-          custom_id: customId,
+          // Ensure custom_id is a simple string to keep payload small
+          custom_id: typeof customId === 'object' ? (customId.id || customId.userId || JSON.stringify(customId)) : String(customId),
           redirect_url: 'https://silvras.com/kyc-callback'
         }
       };
