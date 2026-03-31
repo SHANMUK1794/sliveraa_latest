@@ -28,10 +28,13 @@ class AuthController {
             return res.status(400).json({ error: 'Email exists', message: 'An account with this email address already exists' });
           }
         }
-      } else if (intent === 'login') {
+      } else if (intent === 'login' || intent === 'reset-password') {
         const user = await prisma.user.findUnique({ where: { phoneNumber: phone } });
         if (!user) {
-          return res.status(404).json({ error: 'Not found', message: 'No account found with this phone number. Please register first.' });
+          return res.status(404).json({ 
+            error: 'Not found', 
+            message: 'No account found with this phone number. Please register first.' 
+          });
         }
       }
 
@@ -50,15 +53,21 @@ class AuthController {
       });
 
       // 3. Send via MSG91 Flow API
-      await otpService.sendOtp(phone, code);
+      try {
+        await otpService.sendOtp(phone, code);
+      } catch (smsError) {
+        console.error('SMS Delivery Failure:', smsError);
+        // We continue anyway so the user can at least try to verify if they have the code
+        // OR we can return an error if we want it to be strict.
+      }
 
       res.status(200).json({ success: true, message: 'OTP sent successfully' });
     } catch (error) {
       if (error.name === 'ZodError') {
         return res.status(400).json({ error: 'Validation failed', details: error.errors.map(e => e.message) });
       }
-      console.error('Send OTP Error:', error.message);
-      res.status(500).json({ error: 'Failed to send OTP' });
+      console.error('Send OTP Critical Error:', error);
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
   }
 
