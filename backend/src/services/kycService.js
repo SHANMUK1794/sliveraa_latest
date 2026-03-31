@@ -57,11 +57,17 @@ class KycService {
       const encryptedData = encryption.encrypt(payload);
       if (!encryptedData) throw new Error('Failed to encrypt KYC payload');
       
-      const response = await this._post('/digilocker/initialize', {
+      // Perform direct post to avoid the double-encryption in the _post helper
+      const response = await axios.post(`${this.baseUrl}/digilocker/initialize`, {
         sp_data: encryptedData
+      }, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      return response;
+      return response.data;
     } catch (error) {
       if (error.response?.data) {
         console.error('Surepass Initialization Failed:', error.response.data);
