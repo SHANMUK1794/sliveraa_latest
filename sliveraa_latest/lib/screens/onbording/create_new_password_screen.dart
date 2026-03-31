@@ -128,6 +128,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                   
                   // Save Button
                   GestureDetector(
+                    onTap: () async {
                       if (_passwordController.text != _confirmPasswordController.text) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Passwords do not match')),
@@ -167,6 +168,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                           );
                         }
                       }
+                    },
                     child: Container(
                       width: double.infinity,
                       height: 56,
