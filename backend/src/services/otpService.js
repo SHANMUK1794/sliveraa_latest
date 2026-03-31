@@ -29,13 +29,20 @@ class OtpService {
     if (!this.authKey) {
       throw new Error('OTP service is not configured');
     }
+    
+    // MSG91 Flow API requires the country code. Default to India (91) for 10-digit numbers.
+    let formattedMobile = mobile;
+    if (formattedMobile && formattedMobile.length === 10) {
+      formattedMobile = '91' + formattedMobile;
+    }
+
     try {
       const response = await axios.post(this.url, {
         template_id: '69c6360a2ce9b288c7035137',
         short_url: '1',
         recipients: [
           {
-            mobiles: mobile,
+            mobiles: formattedMobile,
             numeric: code // Matches ##numeric## in your DLT template
           }
         ]
