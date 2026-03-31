@@ -72,14 +72,12 @@ class EncryptionUtils {
       
       console.log(`EncryptionUtils: Encrypting buffer of size ${buffer.length} bytes...`);
       
-      // Using SHA-1 for OAEP/MGF1 provides more capacity (up to 214 bytes for 2048-bit key)
-      // vs SHA-256 (only 190 bytes). This fixes "data too large" errors.
+      // Switching to PKCS1 Padding for 1024-bit Sandbox Keys
+      // This increases capacity to 117 bytes (vs 86 for OAEP), letting our 111-byte payload fit.
       const encrypted = crypto.publicEncrypt(
         {
           key: this.publicKey,
-          padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: 'sha1',
-          mgf1Hash: 'sha1'
+          padding: crypto.constants.RSA_PKCS1_PADDING
         },
         buffer
       );
