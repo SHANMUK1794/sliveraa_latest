@@ -13,34 +13,38 @@ class EncryptionUtils {
     
     if (rawKey) {
       try {
-        console.log('EncryptionUtils: Attempting to decode Public Key...');
+        console.log('EncryptionUtils: Starting X-Ray Key Analysis...');
         
-        // 1. Aggressive clean: Fix escaped newlines, remove quotes, and trim
-        let cleanedKey = rawKey.replace(/\\n/g, '\n')
-                               .replace(/\\r/g, '')
-                               .replace(/"/g, '') // Remove double quotes
-                               .replace(/'/g, '') // Remove single quotes
-                               .trim();
-        
-        console.log(`EncryptionUtils: Cleaned Key Length: ${cleanedKey.length} chars`);
-
-        // 2. Ensure standard SPKI headers if totally naked base64
-        if (!cleanedKey.startsWith('-----BEGIN')) {
-          console.log('EncryptionUtils: Wrapping naked base64 in PEM headers...');
-          // Remove ALL whitespace from raw base64 before wrapping
-          const nakedBase64 = cleanedKey.replace(/\s/g, '');
-          cleanedKey = `-----BEGIN PUBLIC KEY-----\n${nakedBase64}\n-----END PUBLIC KEY-----`;
+        // Debug: Log the first 30 character codes to reveal hidden spaces/BOMs
+        const charCodes = [];
+        for (let i = 0; i < Math.min(30, rawKey.length); i++) {
+          charCodes.push(rawKey.charCodeAt(i));
         }
+        console.log(`EncryptionUtils: Key Start CharCodes: ${charCodes.join(',')}`);
 
-        // 3. Decoding
+        // 1. Aggressive Scrub: Remove ALL whitespace, quotes, backslashes and "n" characters
+        // We want to extract just the raw base64 body if possible
+        let body = rawKey.replace(/-----BEGIN [^-]+-----|-----END [^-]+-----/g, '')
+                          .replace(/\\n/g, '')
+                          .replace(/\\r/g, '')
+                          .replace(/[\s"'\\]/g, '') // Remove spaces, quotes, backslashes
+                          .trim();
+        
+        console.log(`EncryptionUtils: Cleaned Base64 Body Length: ${body.length} chars`);
+
+        // 2. Reconstruct a perfect PEM string
+        const finalKey = `-----BEGIN PUBLIC KEY-----\n${body}\n-----END PUBLIC KEY-----`;
+
+        // 3. Decoding using specific SPKI/PEM format
         this.publicKey = crypto.createPublicKey({
-          key: cleanedKey,
-          format: 'pem'
+          key: finalKey,
+          format: 'pem',
+          type: 'spki'
         });
         
-        console.log('EncryptionUtils: RSA Public Key successfully decoded and ready.');
+        console.log('EncryptionUtils: RSA Public Key successfully reconstructed and ready.');
       } catch (err) {
-        console.error('EncryptionUtils: CRITICAL - Failed to decode Public Key!');
+        console.error('EncryptionUtils: CRITICAL - Reconstruction Failed!');
         console.error('Error Details:', err.message);
         console.error('Key Preview:', rawKey.substring(0, 20) + '...' + rawKey.substring(rawKey.length - 10));
         this.publicKey = null;
