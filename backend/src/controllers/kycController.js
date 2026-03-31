@@ -127,6 +127,21 @@ class KycController {
   }
 
   /**
+   * Initialize DigiLocker WebSDK Session
+   * Flutter route: kyc/digilocker/init
+   */
+  async initDigiLocker(req, res) {
+    try {
+      const userId = req.user?.userId;
+      const response = await kycService.createDigiLockerSession(userId);
+      res.json(response);
+    } catch (error) {
+      console.error('Init DigiLocker Error:', error.message);
+      res.status(500).json({ error: 'Failed to initialize DigiLocker session', message: error.message });
+    }
+  }
+
+  /**
    * Check KYC Status
    * Flutter route: kyc/status/:userId
    */

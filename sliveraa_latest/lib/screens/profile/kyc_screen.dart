@@ -15,6 +15,7 @@ class KycScreen extends StatefulWidget {
 
 class _KycScreenState extends State<KycScreen> {
   final TextEditingController _aadhaarController = TextEditingController();
+  final TextEditingController _panController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   String? _clientId;
   bool _isOtpStep = false;
@@ -30,6 +31,7 @@ class _KycScreenState extends State<KycScreen> {
   @override
   void dispose() {
     _aadhaarController.dispose();
+    _panController.dispose();
     _otpController.dispose();
     super.dispose();
   }
@@ -353,14 +355,20 @@ class _KycScreenState extends State<KycScreen> {
             style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF64748B), height: 1.5),
           ),
           const SizedBox(height: 32),
-          _buildUploadCard('Aadhaar Card (Front)', Icons.badge_outlined),
+          _buildIdInputCard('Enter 12-digit Aadhaar Number', _aadhaarController, Icons.badge_outlined, isAadhaar: true),
           const SizedBox(height: 16),
-          _buildUploadCard('Aadhaar Card (Back)', Icons.badge_outlined),
-          const SizedBox(height: 16),
-          _buildUploadCard('PAN Card', Icons.credit_card_outlined),
+          _buildIdInputCard('Enter 10-digit PAN Number', _panController, Icons.credit_card_outlined, isPan: true),
           const SizedBox(height: 48),
           ElevatedButton(
-            onPressed: uploadedDocs.values.every((v) => v) ? _initiateAadhaarOtp : null,
+            onPressed: isVerifying ? null : () {
+              if (_panController.text.isNotEmpty) {
+                _verifyPan();
+              } else if (_aadhaarController.text.isNotEmpty) {
+                _initiateAadhaarOtp();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter an ID number')));
+              }
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBrownGold,
               foregroundColor: Colors.white,
@@ -380,63 +388,54 @@ class _KycScreenState extends State<KycScreen> {
     );
   }
 
-  Widget _buildUploadCard(String label, IconData icon) {
-    bool isUploaded = uploadedDocs[label] ?? false;
-    return GestureDetector(
-      onTap: () => _showUploadOptions(label),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isUploaded ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0), width: isUploaded ? 2 : 1),
-        ),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isUploaded ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC), 
-                    borderRadius: BorderRadius.circular(16)
-                  ),
-                  child: Icon(
-                    isUploaded ? Icons.task_alt_rounded : icon, 
-                    color: isUploaded ? const Color(0xFF16A34A) : const Color(0xFF94A3B8), 
-                    size: 32
-                  ),
+  Widget _buildIdInputCard(String label, TextEditingController controller, IconData icon, {bool isAadhaar = false, bool isPan = false}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC), 
+                  borderRadius: BorderRadius.circular(12)
                 ),
-                if (isUploaded)
-                  Positioned(
-                    right: -2,
-                    top: -2,
-                    child: Container(
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 16),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              label,
-              style: GoogleFonts.manrope(
-                fontSize: 14, 
-                fontWeight: FontWeight.w700, 
-                color: isUploaded ? const Color(0xFF16A34A) : const Color(0xFF1E293B)
+                child: Icon(icon, color: const Color(0xFF94A3B8), size: 24),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isUploaded ? 'Document Ready' : 'Click to capture or upload',
-              style: GoogleFonts.inter(
-                fontSize: 12, 
-                color: isUploaded ? const Color(0xFF16A34A).withOpacity(0.7) : const Color(0xFF64748B)
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: GoogleFonts.manrope(
+                  fontSize: 14, 
+                  fontWeight: FontWeight.w700, 
+                  color: const Color(0xFF1E293B)
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: controller,
+            keyboardType: isPan ? TextInputType.text : TextInputType.number,
+            maxLength: isPan ? 10 : 12,
+            textCapitalization: isPan ? TextCapitalization.characters : TextCapitalization.none,
+            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 1.5),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: isPan ? 'ABCDE1234F' : '0000 0000 0000',
+              hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8).withOpacity(0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -506,9 +505,7 @@ class _KycScreenState extends State<KycScreen> {
 
     setState(() => isVerifying = true);
     try {
-      final response = await ApiService().post('/kyc/aadhaar-otp', {
-        'id_number': _aadhaarController.text
-      });
+      final response = await ApiService().startKyc('AADHAAR', _aadhaarController.text);
       
       if (response.data['success']) {
         setState(() {
@@ -521,9 +518,9 @@ class _KycScreenState extends State<KycScreen> {
       }
     } catch (e) {
       setState(() => isVerifying = false);
-      String errorMsg = e.toString();
+      String errorMsg = 'Failed to initiate Aadhaar KYC';
       if (e is DioException && e.response?.data != null) {
-        errorMsg = e.response?.data['error'] ?? errorMsg;
+        errorMsg = e.response?.data['message'] ?? e.response?.data['error'] ?? errorMsg;
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
     }
@@ -534,11 +531,7 @@ class _KycScreenState extends State<KycScreen> {
 
     setState(() => isVerifying = true);
     try {
-      final response = await ApiService().post('/kyc/aadhaar-verify', {
-        'client_id': _clientId,
-        'otp': _otpController.text,
-        'userId': AppState().userId
-      });
+      final response = await ApiService().submitAadhaarOtp(_clientId!, _otpController.text);
 
       if (response.data['success']) {
         AppState().kycStatus = "Verified";
@@ -548,9 +541,9 @@ class _KycScreenState extends State<KycScreen> {
       }
     } catch (e) {
       setState(() => isVerifying = false);
-      String errorMsg = e.toString();
+      String errorMsg = 'Verification failed';
       if (e is DioException && e.response?.data != null) {
-        errorMsg = e.response?.data['error'] ?? errorMsg;
+        errorMsg = e.response?.data['message'] ?? e.response?.data['error'] ?? errorMsg;
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
     } finally {
@@ -558,82 +551,36 @@ class _KycScreenState extends State<KycScreen> {
     }
   }
 
-  void _showUploadOptions(String label) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Upload $label', style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 32),
-            // Commented out ImagePicker options for OTP-only test
-            /*
-            _buildOption(Icons.camera_alt_rounded, 'Take Photo', () async {
-              Navigator.pop(context);
-              final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-              if (photo != null) _markUploaded(label);
-            }),
-            const SizedBox(height: 16),
-            _buildOption(Icons.photo_library_rounded, 'Choose from Gallery', () async {
-              Navigator.pop(context);
-              final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-              if (image != null) _markUploaded(label);
-            }),
-            const SizedBox(height: 16),
-            */
-            /*
-            Future<void> _pickImage() async {
-              final ImagePicker picker = ImagePicker();
-              final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-              if (image != null) {
-                setState(() {
-                  _idImagePath = image.path;
-                });
-              }
-            }
-            */
-            _buildOption(Icons.file_present_rounded, 'Browse Files', () {
-              Navigator.pop(context);
-              _markUploaded(label);
-            }),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+  Future<void> _verifyPan() async {
+    String pan = _panController.text.toUpperCase();
+    if (pan.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit PAN number')));
+      return;
+    }
+
+    setState(() => isVerifying = true);
+    try {
+      final response = await ApiService().startKyc('PAN', pan);
+
+      if (response.data['success']) {
+        AppState().kycStatus = "Verified";
+        _showSuccessDialog();
+      } else {
+        throw response.data['message'] ?? 'PAN verification failed';
+      }
+    } catch (e) {
+      setState(() => isVerifying = false);
+      String errorMsg = 'PAN verification failed';
+      if (e is DioException && e.response?.data != null) {
+        errorMsg = e.response?.data['message'] ?? e.response?.data['error'] ?? errorMsg;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg)));
+    } finally {
+      setState(() => isVerifying = false);
+    }
   }
 
-  Widget _buildOption(IconData icon, String title, VoidCallback onTap) {
-    return ListTile(
-      onTap: onTap,
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: const Color(0xFF64748B), size: 22),
-      ),
-      title: Text(title, style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 16)),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFF1F5F9))),
-    );
-  }
-
-  void _markUploaded(String label) {
-    setState(() {
-      uploadedDocs[label] = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$label uploaded successfully'),
-      backgroundColor: const Color(0xFF16A34A),
-      duration: const Duration(seconds: 1),
-    ));
-  }
+  // Removed obsolete manual upload methods
 
   void _showSuccessDialog() {
     showDialog(

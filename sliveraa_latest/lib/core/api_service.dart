@@ -23,7 +23,26 @@ class ApiService {
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
-  ApiService._internal();
+  ApiService._internal() {
+    _dio.interceptors.add(InterceptorsWrapper(
+      onError: (DioException e, handler) {
+        if (e.type == DioExceptionType.connectionError || e.type == DioExceptionType.unknown) {
+          final message = e.message ?? '';
+          if (message.contains('Failed host lookup')) {
+            // This is almost certainly a Jio/ISP DNS blocking issue
+            return handler.reject(
+              DioException(
+                requestOptions: e.requestOptions,
+                error: 'Network issue (Jio/ISP DNS block). Please switch to Wi-Fi or set your Private DNS to "dns.google" in phone settings.',
+                type: DioExceptionType.connectionError,
+              ),
+            );
+          }
+        }
+        return handler.next(e);
+      },
+    ));
+  }
 
   Dio get dio => _dio;
 
@@ -118,15 +137,25 @@ class ApiService {
   }
 
   // KYC Methods
-  Future<Response> startKyc(String userId, {String idType = 'AADHAAR', String idNumber = '000000000000'}) async {
+  Future<Response> startKyc(String idType, String idNumber) async {
     return await _dio.post('kyc/start', data: {
-      'userId': userId,
       'idType': idType,
       'idNumber': idNumber,
     });
   }
 
-  Future<Response> checkKycStatus(String userId) async {
-    return await _dio.get('kyc/status/$userId');
+  Future<Response> initDigiLocker() async {
+    return await _dio.get('kyc/digilocker/init');
+  }
+
+  Future<Response> submitAadhaarOtp(String clientId, String otp) async {
+    return await _dio.post('kyc/submit-aadhaar-otp', data: {
+      'clientId': clientId,
+      'otp': otp,
+    });
+  }
+
+  Future<Response> checkKycStatus() async {
+    return await _dio.get('kyc/status');
   }
 }
