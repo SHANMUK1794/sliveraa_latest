@@ -89,7 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkKycAndNavigate(Widget screen) async {
-    if (AppState().kycStatus == "Verified") {
+    final status = context.read<AppState>().kycStatus;
+    if (status == "VERIFIED") {
       Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
     } else {
       _showKycRequiredDialog(screen);
@@ -142,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => targetScreen));
               },
               child: Text(
                 'Later',
@@ -157,6 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for status changes to update UI instantly
+    context.watch<AppState>();
+    
     return WillPopScope(
       onWillPop: () async {
         if (_selectedIndex != 0) {
@@ -735,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Buy Gold', 
                 const Color(0xFFFDE68A), 
                 Colors.white,
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PriceTrendsScreen(initialIsGold: true))),
+                () => _checkKycAndNavigate(const PriceTrendsScreen(initialIsGold: true)),
                 solidIconBg: true,
                 bgOverride: const Color(0xFFFBBF24)
               ),
@@ -744,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Buy Silver', 
                 const Color(0xFFE2E8F0), 
                 Colors.white,
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PriceTrendsScreen(initialIsGold: false))),
+                () => _checkKycAndNavigate(const PriceTrendsScreen(initialIsGold: false)),
                 solidIconBg: true,
                 bgOverride: const Color(0xFF94A3B8)
               ),

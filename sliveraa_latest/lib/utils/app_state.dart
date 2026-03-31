@@ -28,14 +28,14 @@ class AppState extends ChangeNotifier {
   double silverGrams = 0.0;
 
   // KYC Status
-  String _kycStatus = "Unverified"; // "Unverified", "Pending", "Verified"
+  String _kycStatus = "NOT_STARTED"; // "NOT_STARTED", "PENDING", "VERIFIED"
   String get kycStatus => _kycStatus;
   set kycStatus(String value) {
-    _kycStatus = value;
+    _kycStatus = value.toUpperCase();
     notifyListeners();
   }
 
-  bool get isKycVerified => kycStatus == "Verified";
+  bool get isKycVerified => kycStatus == "VERIFIED";
 
   // User Details
   String userId = "";

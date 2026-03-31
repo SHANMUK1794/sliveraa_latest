@@ -54,9 +54,9 @@ class _KycScreenState extends State<KycScreen> {
     Widget body;
     if (isVerifying) {
       body = _buildVerifyingState();
-    } else if (status.toUpperCase() == 'VERIFIED') {
+    } else if (status == 'VERIFIED') {
       body = _buildVerifiedState();
-    } else if (status.toUpperCase() == 'PENDING') {
+    } else if (status == 'PENDING') {
       body = _buildPendingState();
     } else if (_isOtpStep) {
       body = _buildOtpVerifyStep();
