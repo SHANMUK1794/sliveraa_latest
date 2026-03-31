@@ -476,7 +476,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         Navigator.pop(context); // Close loading
         String errorMsg = e.toString();
         if (e is DioException && e.response?.data != null) {
-          errorMsg = e.response?.data['error'] ?? errorMsg;
+          final data = e.response?.data;
+          errorMsg = data is Map ? (data['message'] ?? data['error'] ?? errorMsg) : errorMsg;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMsg)),

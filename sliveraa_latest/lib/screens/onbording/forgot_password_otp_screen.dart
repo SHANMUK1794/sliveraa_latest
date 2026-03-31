@@ -400,7 +400,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
         String errorMsg = e.toString();
         if (e is DioException && e.response?.data != null) {
           final data = e.response?.data;
-          errorMsg = data is Map ? (data['error'] ?? data['message'] ?? errorMsg) : errorMsg;
+          errorMsg = data is Map ? (data['message'] ?? data['error'] ?? errorMsg) : errorMsg;
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMsg)),

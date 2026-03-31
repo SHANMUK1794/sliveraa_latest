@@ -486,10 +486,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } catch (e) {
         if (mounted) {
           Navigator.pop(context); // Close loading
-          String errorMsg = e.toString(); // Show full error for debugging
+          String errorMsg = e.toString();
           if (e is DioException && e.response?.data != null) {
             final data = e.response?.data;
-            errorMsg = data is Map ? (data['error'] ?? data['message'] ?? errorMsg) : errorMsg;
+            errorMsg = data is Map ? (data['message'] ?? data['error'] ?? errorMsg) : errorMsg;
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
