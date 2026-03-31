@@ -474,15 +474,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } catch (e) {
         if (mounted) {
           Navigator.pop(context); // Close loading
-          String errorMsg = 'Failed to send OTP. Please try again.';
+          String errorMsg = e.toString(); // Show full error for debugging
           if (e is DioException && e.response?.data != null) {
-            errorMsg = e.response?.data['error'] ?? errorMsg;
+            final data = e.response?.data;
+            errorMsg = data is Map ? (data['error'] ?? data['message'] ?? errorMsg) : errorMsg;
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMsg),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 10),
             ),
           );
         }

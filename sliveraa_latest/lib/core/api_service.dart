@@ -9,15 +9,15 @@ class ApiService {
     // Railway Production URL
     const productionUrl = 'https://sliveraalatest-production.up.railway.app';
     
-    // Use localhost for Windows development, otherwise use Production
-    final baseUrl = (!kIsWeb && Platform.isWindows) ? 'http://localhost:3000' : productionUrl;
+    // Always use Production URL for testing
+    final baseUrl = productionUrl;
     return '$baseUrl/api/';
   }
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: _baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 5),
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
   ));
 
   // Singleton pattern
