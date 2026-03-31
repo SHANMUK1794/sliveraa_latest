@@ -92,14 +92,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 48),
 
-                  // Email Field
+                  // Email / Phone Identifier Field
                   _buildInputField(
-                    label: 'EMAIL ADDRESS/ PHONE NUMBER',
-                    hintText: 'name@example.com',
+                    label: 'EMAIL ADDRESS / PHONE NUMBER',
+                    hintText: 'name@example.com or 9999999999',
                     controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     formatters: [
                       FilteringTextInputFormatter.allow(
-                        RegExp(r'[a-zA-Z0-9@.]'),
+                        RegExp(r'[a-zA-Z0-9@.-]'),
                       ),
                     ],
                   ),
@@ -297,6 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     bool obscureText = false,
     List<TextInputFormatter>? formatters,
+    TextInputType? keyboardType,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -320,6 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: controller,
             obscureText: obscureText,
             inputFormatters: formatters,
+            keyboardType: keyboardType ?? TextInputType.text,
             style: GoogleFonts.inter(
               color: const Color(0xFF1A1C1C),
               fontSize: 16,

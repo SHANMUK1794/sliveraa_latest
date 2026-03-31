@@ -200,8 +200,9 @@ class AuthController {
       const validated = loginSchema.parse(data);
       const { phone, password } = validated;
 
+      const isEmail = phone.includes('@');
       const user = await prisma.user.findUnique({
-        where: { phoneNumber: phone }
+        where: isEmail ? { email: phone.toLowerCase() } : { phoneNumber: phone }
       });
 
       if (!user || !user.password) {

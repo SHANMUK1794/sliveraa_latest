@@ -19,7 +19,7 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
-  phone: phoneSchema,
+  phone: z.string().min(1, "Phone or Email is required"),
   password: z.string().min(1, "Password is required")
 });
 
