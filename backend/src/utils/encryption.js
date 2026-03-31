@@ -67,15 +67,19 @@ class EncryptionUtils {
     }
 
     try {
-      const buffer = Buffer.from(JSON.stringify(data));
+      const jsonString = JSON.stringify(data);
+      const buffer = Buffer.from(jsonString);
       
-      // Surepass requirement: RSA-OAEP with SHA-256 for both OAEP and MGF1
+      console.log(`EncryptionUtils: Encrypting buffer of size ${buffer.length} bytes...`);
+      
+      // Using SHA-1 for OAEP/MGF1 provides more capacity (up to 214 bytes for 2048-bit key)
+      // vs SHA-256 (only 190 bytes). This fixes "data too large" errors.
       const encrypted = crypto.publicEncrypt(
         {
           key: this.publicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-          oaepHash: 'sha256',
-          mgf1Hash: 'sha256' // CRITICAL: Surepass requires SHA-256 for MGF1
+          oaepHash: 'sha1',
+          mgf1Hash: 'sha1'
         },
         buffer
       );

@@ -45,18 +45,16 @@ class KycService {
    */
   async createDigiLockerSession(customId) {
     try {
-      // Official Digiboost Initialize Payload
-      // Note: Encryption Active (Shield) requires fields to be nested inside 'data'
+      // Official Digiboost Initialize Payload (Minimal)
       const payload = {
         data: {
-          signup_flow: true,
-          skip_main_screen: false,
           custom_id: customId,
           redirect_url: 'https://silvras.com/kyc-callback'
         }
       };
 
       const encryptedData = encryption.encrypt(payload);
+      if (!encryptedData) throw new Error('Failed to encrypt KYC payload');
       
       const response = await this._post('/digilocker/initialize', {
         sp_data: encryptedData
@@ -64,7 +62,11 @@ class KycService {
       
       return response;
     } catch (error) {
-      console.error('Digiboost Initialization Failed:', error.response?.data || error.message);
+      if (error.response?.data) {
+        console.error('Surepass Initialization Failed:', error.response.data);
+      } else {
+        console.error('Surepass Initialization Failed:', error.message);
+      }
       throw error;
     }
   }
