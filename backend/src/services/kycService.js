@@ -53,13 +53,7 @@ class KycService {
         }
       };
 
-      const encryptedData = encryption.encrypt(payload);
-      if (!encryptedData) throw new Error('Failed to encrypt KYC payload');
-      
-      // Perform direct post to avoid the double-encryption in the _post helper
-      const response = await axios.post(`${this.baseUrl}/digilocker/initialize`, {
-        sp_data: encryptedData
-      }, {
+      const response = await axios.post(`${this.baseUrl}/digilocker/initialize`, payload, {
         headers: {
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json'
