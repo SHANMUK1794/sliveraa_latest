@@ -10,14 +10,16 @@ class PaymentStatusScreen extends StatelessWidget {
   final String transactionId;
   final String paymentMethod;
   final String? userName;
+  final String? errorMessage;
 
   const PaymentStatusScreen({
     super.key,
     required this.isSuccess,
     required this.amount,
-    this.transactionId = 'INV483920',
-    this.paymentMethod = 'UPI',
-    this.userName = 'Rahul Sharma',
+    this.transactionId = 'TXN_PENDING',
+    this.paymentMethod = 'UPI/Razorpay',
+    this.userName = 'Silveraa User',
+    this.errorMessage,
   });
 
   @override
@@ -73,8 +75,8 @@ class PaymentStatusScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               isSuccess 
-                  ? 'You have successfully invested ₹${amount.toLocaleString()} with $userName.'
-                  : 'Your Payment is Unsuccessfull',
+                  ? 'You have successfully invested ₹${amount.toLocaleString()} in your account.'
+                  : errorMessage ?? 'Your payment could not be processed. Please try again or contact support if the amount was debited.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,

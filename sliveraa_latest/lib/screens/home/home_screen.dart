@@ -756,7 +756,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Calculator', 
                 const Color(0xFFF1F5F9), 
                 const Color(0xFF94A3B8),
-                () => Navigator.push(context, MaterialPageRoute(builder: (context) => WealthCalculator())),
+                () => _checkKycAndNavigate(const WealthCalculator()),
               ),
               _buildActionItem(
                 Icons.local_shipping_outlined, 
@@ -842,10 +842,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 e['icon'] as IconData,
                 e['color'] as Color,
                 () {
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (context) => SavingsPlanScreen(isGoldInitial: true, initialFrequency: e['freq'] as String))
-                  );
+                  _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: true, initialFrequency: e['freq'] as String));
                 },
               )),
         ],
@@ -946,7 +943,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
           GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ReferralScreen())),
+            onTap: () => _checkKycAndNavigate(const ReferralScreen()),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
               decoration: BoxDecoration(
@@ -1297,6 +1294,9 @@ class _PulsatingDotState extends State<_PulsatingDot> with SingleTickerProviderS
 
   @override
   Widget build(BuildContext context) {
+    // Watch for KYC status changes to instantly update Home Screen buttons
+    context.watch<AppState>();
+    
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {

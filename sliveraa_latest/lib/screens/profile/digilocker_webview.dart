@@ -167,21 +167,24 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
       setState(() => _isLoading = true);
       
       if (_clientId != null) {
-        final response = await ApiService().finalizeDigiLocker(_clientId!);
-        print('Backend Finalization Success: ${response.data}');
-      }
-      
-      if (mounted) {
-        print('Updating UI State to Verified...');
-        context.read<AppState>().kycStatus = 'Verified';
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification Successfully Completed!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
-        Navigator.of(context).pop();
+        try {
+          final response = await ApiService().finalizeDigiLocker(_clientId!);
+          if (mounted) {
+            if (response.data['success'] == true) {
+              // Responsibility: Instant feedback on success
+              await context.read<AppState>().refreshStatus();
+              _showSuccessDialog();
+            } else {
+              // Responsibility: Explaining WHY backend rejected it
+              String message = response.data['message'] ?? 'Identity verification stalled. Please contact Silvra support.';
+              _showErrorDialog(message);
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            _showErrorDialog('Verification connection lost. Don\'t worry, your DigiLocker progress is saved. Please try refreshing your status later.');
+          }
+        }
       }
     } catch (e) {
       print('Finalization Error: $e');

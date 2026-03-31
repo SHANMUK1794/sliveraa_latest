@@ -23,6 +23,27 @@ class AppState extends ChangeNotifier {
   factory AppState() => _instance;
   AppState._internal();
 
+  // Biometric Status
+  bool _isBiometricEnabled = false;
+  bool get isBiometricEnabled => _isBiometricEnabled;
+  set isBiometricEnabled(bool value) {
+    _isBiometricEnabled = value;
+    _saveBiometricPreference(value);
+    notifyListeners();
+  }
+
+  // Load from SharedPreferences
+  Future<void> loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> _saveBiometricPreference(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isBiometricEnabled', value);
+  }
+
   // Portfolio Balances (Grams)
   double goldGrams = 0.0;
   double silverGrams = 0.0;
@@ -40,8 +61,10 @@ class AppState extends ChangeNotifier {
   // User Details
   String userId = "";
   String userName = "";
-  String userPhone = "";
-  String userEmail = "";
+  Map<String, dynamic> currentUser = {};
+
+  String get userPhone => currentUser['phone'] ?? '';
+  String get userEmail => currentUser['email'] ?? '';
   int auraPoints = 0;
   String referralCode = "";
   int referralCount = 0;

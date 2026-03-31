@@ -319,9 +319,16 @@ class CheckoutScreen extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                // In a production scenario, this screen should also initiate createOrder
+                // But since our SummaryScreen now bypasses this, we fix the signature here
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => PaymentScreen(amount: totalAmount)),
+                  MaterialPageRoute(builder: (context) => PaymentScreen(
+                    amount: totalAmount,
+                    orderId: 'INTERNAL_CHECKOUT_PENDING',
+                    isGold: isGold,
+                    grams: isGold ? 0.1 : 868.0, // Matching the UI text on Line 76
+                  )),
                 );
               },
               style: ElevatedButton.styleFrom(

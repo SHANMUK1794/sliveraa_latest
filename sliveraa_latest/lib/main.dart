@@ -131,12 +131,17 @@ import 'core/price_provider.dart';
 import 'utils/app_state.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  final appState = AppState();
+  await appState.loadPreferences();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => PriceProvider()),
-        ChangeNotifierProvider(create: (_) => AppState()),
+        ChangeNotifierProvider.value(value: appState),
       ],
       child: const MyApp(),
     ),
