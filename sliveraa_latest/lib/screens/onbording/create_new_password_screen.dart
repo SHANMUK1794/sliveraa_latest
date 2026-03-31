@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../home/home_screen.dart';
+import '../../core/api_service.dart';
+import 'package:dio/dio.dart';
 
 class CreateNewPasswordScreen extends StatefulWidget {
   const CreateNewPasswordScreen({super.key});
@@ -126,17 +128,6 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                   
                   // Save Button
                   GestureDetector(
-                    onTap: () {
-                      // BYPASS: Navigate to Home as "Saved"
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        (route) => false,
-                      );
-                      return;
-
-                      /*
-                      // Future Backend Integration:
                       if (_passwordController.text != _confirmPasswordController.text) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Passwords do not match')),
@@ -151,7 +142,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                       );
 
                       try {
-                        // await ApiService().resetPassword(widget.phone, _passwordController.text);
+                        await ApiService().updatePassword(_passwordController.text);
                         
                         if (mounted) {
                           Navigator.pop(context); // Close loading
@@ -164,13 +155,18 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                       } catch (e) {
                         if (mounted) {
                           Navigator.pop(context); // Close loading
+                          String errorMsg = e.toString();
+                          try {
+                            if (e is DioException && e.response?.data != null) {
+                              final data = e.response?.data;
+                              errorMsg = data is Map ? (data['error'] ?? data['message'] ?? errorMsg) : errorMsg;
+                            }
+                          } catch (_) {}
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(e.toString())),
+                            SnackBar(content: Text(errorMsg)),
                           );
                         }
                       }
-                      */
-                    },
                     child: Container(
                       width: double.infinity,
                       height: 56,

@@ -1,5 +1,6 @@
 const kycService = require('../services/kycService');
 const prisma = require('../models/prisma');
+const authUtils = require('../utils/authUtils');
 
 class UserController {
   /**
@@ -117,7 +118,27 @@ class UserController {
 
       res.json({ message: 'Aadhaar verified successfully', userDetails: response.data });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * Update Password
+   */
+  async updatePassword(req, res) {
+    const { userId } = req.user;
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ error: 'Password required' });
+
+    try {
+      const hashedPassword = await authUtils.hashPassword(password);
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword }
+      });
+      res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Update Password Error:', error);
+      res.status(500).json({ error: 'Failed to update password' });
     }
   }
 }

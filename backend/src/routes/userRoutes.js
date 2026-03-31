@@ -7,5 +7,6 @@ router.get('/profile', authMiddleware, userController.getProfile);
 router.get('/me', authMiddleware, userController.getProfile);
 router.get('/transactions', authMiddleware, userController.getTransactions);
 router.patch('/update', authMiddleware, userController.updateProfile);
+router.patch('/update-password', authMiddleware, userController.updatePassword);
 
 module.exports = router;

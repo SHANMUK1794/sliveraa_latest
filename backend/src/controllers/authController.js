@@ -107,25 +107,34 @@ class AuthController {
         if (!user) {
           return res.status(404).json({ error: 'Not found', message: 'No account found with this phone number' });
         }
-        if (!password) {
-          return res.status(400).json({ error: 'Input required', message: 'New password is required for reset' });
+        if (password) {
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              password: await authUtils.hashPassword(password)
+            }
+          });
         }
-
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            password: await authUtils.hashPassword(password)
-          }
-        });
       } else {
         // Standard login intent
         if (!user) {
           // Auto-registration for login if no account exists (legacy support)
+          if (email) {
+            const emailLower = email.toLowerCase();
+            const emailCheck = await prisma.user.findUnique({ where: { email: emailLower } });
+            if (emailCheck) {
+              return res.status(400).json({ 
+                error: 'Email exists', 
+                message: 'An account with this email address already exists' 
+              });
+            }
+          }
+          
           user = await prisma.user.create({
             data: {
               phoneNumber: phone,
               name: name || `User ${phone.slice(-4)}`,
-              email: email || null
+              email: email ? email.toLowerCase() : null
             }
           });
         }

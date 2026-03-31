@@ -65,11 +65,17 @@ class ApiService {
       'code': code,
       'intent': intent,
     };
-    if (name != null) data['name'] = name;
-    if (email != null) data['email'] = email;
-    if (password != null) data['password'] = password;
+    if (name != null && name.isNotEmpty) data['name'] = name;
+    if (email != null && email.isNotEmpty) data['email'] = email;
+    if (password != null && password.isNotEmpty) data['password'] = password;
     
     return await _dio.post('auth/verify-otp', data: data);
+  }
+
+  Future<Response> updatePassword(String newPassword) async {
+    return await _dio.patch('profile/update-password', data: {
+      'password': newPassword,
+    });
   }
 
   // Profile & Transactions
