@@ -22,6 +22,23 @@ class KycController {
       // Validate
       const validated = kycStartSchema.parse(data);
       const { userId, idType, idNumber } = validated;
+
+      // Duplicate Check: Has another user already verified this document?
+      const existingDoc = await prisma.kycDetail.findFirst({
+        where: {
+          documentNumber: idNumber,
+          status: 'VERIFIED',
+          NOT: { userId: userId }
+        }
+      });
+
+      if (existingDoc) {
+        return res.status(400).json({ 
+          error: 'Duplicate Document', 
+          message: 'This Aadhaar/PAN is already verified with another account' 
+        });
+      }
+
       let response;
       if (idType === 'AADHAAR') {
         response = await kycService.verifyAadhaar(idNumber);
@@ -170,20 +187,43 @@ class KycController {
 
       const response = await kycService.getDigiLockerResult(clientId);
 
-      // Status check: Surepass returns success if the document is downloaded
+      // Status check
       if (response.success || response.status_code === 200) {
+        const aadhaarData = response.data?.aadhaar_xml_data || {};
+        const aadhaarNumber = aadhaarData.masked_aadhaar || 'DIGILOCKER_VERIFIED'; // Masked Aadhar for tracking
+
+        // Duplicate Check: Ensure this person isn't already verified elsewhere
+        // We check against the unique ID provided by Surepass if available
+        const docNumber = response.data?.digilocker_metadata?.name + response.data?.digilocker_metadata?.dob; // Fallback unique key
+        
+        const existingIdentity = await prisma.kycDetail.findFirst({
+            where: {
+                documentNumber: docNumber,
+                status: 'VERIFIED',
+                NOT: { userId: userId }
+            }
+        });
+
+        if (existingIdentity) {
+            return res.status(400).json({ 
+                error: 'Identity Already Verified', 
+                message: 'This Aadhaar identity is already linked to another account' 
+            });
+        }
+
         await prisma.$transaction([
           prisma.kycDetail.upsert({
             where: { userId },
             update: {
               status: 'VERIFIED',
               verifiedAt: new Date(),
+              documentNumber: docNumber,
               rawResponse: response
             },
             create: {
               userId,
-              documentType: 'AADHAAR', // DigiLocker is usually Aadhaar
-              documentNumber: 'DIGILOCKER_FETCHED',
+              documentType: 'AADHAAR',
+              documentNumber: docNumber,
               status: 'VERIFIED',
               verifiedAt: new Date(),
               rawResponse: response
