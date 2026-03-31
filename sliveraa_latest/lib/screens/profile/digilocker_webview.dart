@@ -142,31 +142,37 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
   }
 
   void _handleSdkCallback(String message) {
+    print('SDK Callback Received: $message');
     try {
       final data = jsonDecode(message);
       final String status = data['status'];
 
       if (status == 'SUCCESS') {
+        print('Success signal detected - starting finalization...');
         _onVerificationComplete();
       } else if (status == 'FAILURE' || status == 'ERROR') {
+        print('Error signal detected: ${data['error'] ?? data['message']}');
         setState(() {
           _errorMessage = data['error'] ?? data['message'] ?? 'Verification failed';
         });
       }
     } catch (e) {
-      print('Callback Error: $e');
+      print('Callback JSON Parsing Error: $e');
     }
   }
 
   Future<void> _onVerificationComplete() async {
+    print('Finalizing KYC for Client ID: $_clientId');
     try {
       setState(() => _isLoading = true);
       
       if (_clientId != null) {
-        await ApiService().finalizeDigiLocker(_clientId!);
+        final response = await ApiService().finalizeDigiLocker(_clientId!);
+        print('Backend Finalization Success: ${response.data}');
       }
       
       if (mounted) {
+        print('Updating UI State to Verified...');
         context.read<AppState>().kycStatus = 'Verified';
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -178,9 +184,10 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      print('Finalization Error: $e');
       if (mounted) {
         setState(() {
-          _errorMessage = '${e.toString()}';
+          _errorMessage = 'Server Sync Failed: ${e.toString()}';
           _isLoading = false;
         });
       }
