@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+himport 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -346,16 +346,7 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
     return _controllers.every((c) => c.text.isNotEmpty);
   }
 
-  void _verifyOtp() {
-    // BYPASS: Navigate to Create New Password reset screen instead of calling API
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CreateNewPasswordScreen()),
-    );
-    return;
-
-    /*
-    // Future Backend Integration:
+  Future<void> _verifyOtp() async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -367,27 +358,38 @@ class _ForgotPasswordOtpScreenState extends State<ForgotPasswordOtpScreen> {
       String cleanPhone = widget.phoneNumber.replaceAll(RegExp(r'\D'), '');
       if (cleanPhone.length > 10) cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
 
-      await ApiService().verifyOtp(
+      final response = await ApiService().verifyOtp(
         cleanPhone, 
         otp, 
         intent: widget.intent,
       );
       
       if (mounted) {
+        // Store the reset token so it can be used on the CreateNewPasswordScreen
+        if (response.data != null && response.data['token'] != null) {
+          ApiService().setToken(response.data['token']);
+        }
+        
         Navigator.pop(context); // Close loading
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const CreateNewPasswordScreen()),
+          MaterialPageRoute(
+            builder: (context) => const CreateNewPasswordScreen(),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Close loading
+        String errorMsg = e.toString();
+        if (e is DioException && e.response?.data != null) {
+          final data = e.response?.data;
+          errorMsg = data is Map ? (data['error'] ?? data['message'] ?? errorMsg) : errorMsg;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(errorMsg)),
         );
       }
     }
-    */
   }
 }
