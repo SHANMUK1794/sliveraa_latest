@@ -53,11 +53,14 @@ class ApiService {
   }
 
   Future<Response> sendOtp(String phone, {String? intent, String? email}) async {
-    return await _dio.post('auth/send-otp', data: {
+    final data = {
       'phone': phone,
       'intent': intent,
-      'email': email,
-    });
+    };
+    if (email != null && email.trim().isNotEmpty) {
+      data['email'] = email.trim();
+    }
+    return await _dio.post('auth/send-otp', data: data);
   }
 
   Future<Response> verifyOtp(String phone, String code, {String? name, String? email, String? intent, String? password}) async {

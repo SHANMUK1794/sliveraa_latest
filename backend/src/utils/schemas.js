@@ -25,7 +25,7 @@ const loginSchema = z.object({
 
 const sendOtpSchema = z.object({
   phone: phoneSchema,
-  email: z.string().email().optional(),
+  email: z.preprocess((val) => val === '' ? undefined : val, z.string().email().optional()),
   intent: z.enum(['register', 'login', 'reset-password'], {
     errorMap: () => ({ message: "Invalid intent. Must be 'register', 'login', or 'reset-password'" })
   })

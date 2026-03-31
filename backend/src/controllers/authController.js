@@ -63,8 +63,9 @@ class AuthController {
 
       res.status(200).json({ success: true, message: 'OTP sent successfully' });
     } catch (error) {
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ error: 'Validation failed', details: error.errors.map(e => e.message) });
+      if (error.name === 'ZodError' || error.issues) {
+        const details = (error.errors || error.issues || []).map(e => e.message);
+        return res.status(400).json({ error: 'Validation failed', details });
       }
       console.error('Send OTP Critical Error:', error);
       res.status(500).json({ error: 'Internal Server Error', message: error.message });
