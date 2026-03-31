@@ -24,7 +24,7 @@ class KycService {
 
     try {
       const response = await axios.post(`${this.baseUrl}${path}`, {
-        data: encryptedData
+        sp_data: encryptedData // Surepass requirement: Encryption must wrap payload in 'sp_data'
       }, {
         headers: {
           'Authorization': `Bearer ${this.token}`,

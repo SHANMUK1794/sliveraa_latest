@@ -52,9 +52,9 @@ class EncryptionUtils {
   }
 
   /**
-   * Encrypt a JSON payload using RSA Public Key
-   * @param {Object} data - The JSON object to encrypt
-   * @returns {string|null} - Base64 encoded encrypted string
+   * Encrypt data using RSA-OAEP with SHA-256
+   * @param {Object} data - The payload to encrypt
+   * @returns {string|null} - Base64 encrypted string
    */
   encrypt(data) {
     if (!this.publicKey) {
@@ -64,14 +64,18 @@ class EncryptionUtils {
 
     try {
       const buffer = Buffer.from(JSON.stringify(data));
+      
+      // Surepass requirement: RSA-OAEP with SHA-256 for both OAEP and MGF1
       const encrypted = crypto.publicEncrypt(
         {
           key: this.publicKey,
           padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
+          mgf1Hash: 'sha256' // CRITICAL: Surepass requires SHA-256 for MGF1
         },
         buffer
       );
+      
       return encrypted.toString('base64');
     } catch (error) {
       console.error('EncryptionUtils: Encryption failed:', error.message);
