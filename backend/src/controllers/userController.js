@@ -118,6 +118,7 @@ class UserController {
 
       res.json({ message: 'Aadhaar verified successfully', userDetails: response.data });
     } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   }
 

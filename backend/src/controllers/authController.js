@@ -84,7 +84,8 @@ class AuthController {
           });
         }
         if (email) {
-          const emailCheck = await prisma.user.findUnique({ where: { email } });
+          const emailLower = email.toLowerCase();
+          const emailCheck = await prisma.user.findUnique({ where: { email: emailLower } });
           if (emailCheck) {
             return res.status(400).json({ 
               error: 'Email exists', 
@@ -99,7 +100,7 @@ class AuthController {
           data: {
             phoneNumber: phone,
             name: name || `User ${phone.slice(-4)}`,
-            email: email || null,
+            email: email ? email.toLowerCase() : null,
             password: hashedPassword
           }
         });
