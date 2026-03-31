@@ -1,0 +1,38 @@
+# Common
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Backend (Node.js)
+backend/node_modules/
+backend/.env
+backend/npm-debug.log*
+
+# Frontend (Flutter)
+sliveraa_latest/.dart_tool/
+sliveraa_latest/build/
+sliveraa_latest/.flutter-plugins
+sliveraa_latest/.flutter-plugins-dependencies
+sliveraa_latest/.packages
+sliveraa_latest/.pub/
+sliveraa_latest/pubspec.lock
+sliveraa_latest/analysis_output*.txt
+sliveraa_latest/analyze_out.txt
+sliveraa_latest/android/app/debug/
+sliveraa_latest/android/app/profile/
+sliveraa_latest/android/app/release/
+sliveraa_latest/ios/Flutter/Generated.xcconfig
+sliveraa_latest/ios/Flutter/flutter_export_environment.sh
+sliveraa_latest/ios/Flutter/Flutter.podspec
+sliveraa_latest/ios/.symlinks/
+sliveraa_latest/ios/Pods/
+sliveraa_latest/ios/ServiceDefinitions.json
+sliveraa_latest/ios/Runner/GeneratedConfig.xcconfig
+sliveraa_latest/windows/flutter/ephemeral/
+sliveraa_latest/linux/flutter/ephemeral/
+sliveraa_latest/macos/Flutter/ephemeral/
+
+# Root Git
+.git/

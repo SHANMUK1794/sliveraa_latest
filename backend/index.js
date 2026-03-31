@@ -1,0 +1,45 @@
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+require('dotenv').config();
+
+const authRoutes = require('./src/routes/authRoutes');
+const profileRoutes = require('./src/routes/userRoutes'); // Renamed internally for clarity
+const priceRoutes = require('./src/routes/priceRoutes');
+const paymentRoutes = require('./src/routes/paymentRoutes');
+const kycRoutes = require('./src/routes/kycRoutes');
+const deliveryRoutes = require('./src/routes/deliveryRoutes');
+const investmentRoutes = require('./src/routes/investmentRoutes');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middlewares
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes aligned with Flutter ApiService
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes); // Matches profile/me
+app.use('/api/prices', priceRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/kyc', kycRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/invest', investmentRoutes);
+
+// Health Check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Silveraa Backend is running' });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Silveraa Backend running on http://localhost:${PORT}`);
+});

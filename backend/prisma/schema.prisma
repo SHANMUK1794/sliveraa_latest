@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SavingsFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum TransactionType {
+  BUY
+  SELL
+  DEPOSIT
+  WITHDRAWAL
+  REWARD
+}
+
+enum MetalType {
+  GOLD
+  SILVER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  phoneNumber   String    @unique
+  name          String?
+  email         String?   @unique
+  password      String?
+  referralCode  String    @unique @default(cuid())
+  referredBy    String?
+  
+  kycStatus     KycStatus @default(NOT_STARTED)
+  walletBalance Float     @default(0.0)
+  goldBalance   Float     @default(0.0)
+  silverBalance Float     @default(0.0)
+  
+  transactions  Transaction[]
+  kycDetails    KycDetail?
+  addresses     Address[]
+  deliveries    DeliveryRequest[]
+  savingsPlans  SavingsPlan[]
+  rewards       Reward[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Address {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  
+  label         String    @default("Home") 
+  line1         String
+  line2         String?
+  city          String
+  state         String
+  pincode       String
+  isDefault     Boolean   @default(false)
+
+  deliveryRequests DeliveryRequest[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model DeliveryRequest {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  addressId       String
+  address         Address           @relation(fields: [addressId], references: [id])
+  
+  metalType       MetalType
+  weight          Float             
+  
+  status          String            @default("PENDING") 
+  trackingId      String?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model SavingsPlan {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  
+  metalType       MetalType
+  amount          Float             
+  frequency       SavingsFrequency  @default(MONTHLY)
+  dayOfWeek       Int?              // for WEEKLY (0-6)
+  dayOfMonth      Int?              // for MONTHLY (1-31)
+  
+  startDate       DateTime          @default(now())
+  nextPaymentDate DateTime
+  status          String            @default("ACTIVE") 
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Reward {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  
+  points          Float
+  description     String
+  type            String            @default("REFERRAL")
+  
+  createdAt       DateTime          @default(now())
+}
+
+model OtpVerification {
+  id            String    @id @default(uuid())
+  phoneNumber   String
+  code          String
+  intent        String    // register, login, reset-password
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  @@index([phoneNumber])
+}
+
+model KycDetail {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  
+  documentType    String    // e.g., "AADHAAR", "PAN"
+  documentNumber  String
+  verificationId  String?   // From Surepass
+  status          KycStatus @default(PENDING)
+  
+  rawResponse     Json?
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Transaction {
+  id              String            @id @default(uuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  
+  type            TransactionType
+  metalType       MetalType?
+  amount          Float
+  weight          Float?            // weight in grams if it's a metal transaction
+  pricePerUnit    Float?            // price at time of transaction
+  
+  status          TransactionStatus @default(PENDING)
+  razorpayOrderId String?           @unique
+  razorpayPaymentId String?         @unique
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model MetalPrice {
+  id              String    @id @default(uuid())
+  metalType       MetalType @unique
+  price           Float
+  currency        String    @default("INR")
+  source          String    @default("goldapi.io")
+  
+  updatedAt       DateTime  @updatedAt
+}

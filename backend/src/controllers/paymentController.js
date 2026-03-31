@@ -1,0 +1,143 @@
+const paymentService = require('../services/paymentService');
+const priceService = require('../services/priceService');
+const prisma = require('../models/prisma');
+const { createOrderSchema, verifyPaymentSchema } = require('../utils/schemas');
+
+class PaymentController {
+  /**
+   * Create Razorpay Order for Adding Balance or Buying Metal
+   * Flutter payload: amount, assetType, grams, userId
+   */
+  async createOrder(req, res) {
+    try {
+      const { userId } = req.user;
+      
+      // Validate
+      const validated = createOrderSchema.parse({
+        ...req.body,
+        userId
+      });
+      const { amount, assetType, grams } = validated;
+      let finalAmount = amount;
+      let weight = grams;
+
+      // If weight is provided but amount is not, calculate based on live price
+      if (!finalAmount && weight && assetType) {
+        const symbol = assetType === 'GOLD' ? 'XAU' : 'XAG';
+        finalAmount = await priceService.calculatePrice(symbol, weight);
+      }
+
+      if (!finalAmount) return res.status(400).json({ error: 'Amount or Weight required' });
+
+      const amountPaise = Math.round(finalAmount * 100);
+      const order = await paymentService.createOrder(amountPaise);
+
+      // Create transaction record in pending state
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId,
+          amount: finalAmount,
+          weight: weight || null,
+          type: assetType ? 'BUY' : 'DEPOSIT',
+          metalType: assetType || null,
+          razorpayOrderId: order.id,
+          status: 'PENDING'
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Order created',
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        transactionId: transaction.id
+      });
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          error: 'Validation Error', 
+          details: error.errors.map(e => e.message) 
+        });
+      }
+      console.error('Create Order Error:', error);
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  /**
+   * Verify Razorpay Payment Signature and Complete Transaction
+   */
+  async verifyPayment(req, res) {
+    try {
+      const { userId } = req.user;
+      
+      const validated = verifyPaymentSchema.parse({
+        ...req.body,
+        userId
+      });
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = validated;
+
+      const isValid = paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+      if (!isValid) return res.status(401).json({ error: 'Invalid payment signature' });
+
+      try {
+        // Find and update transaction
+        const transaction = await prisma.transaction.findUnique({
+          where: { razorpayOrderId: razorpay_order_id },
+        });
+
+        if (!transaction || transaction.status !== 'PENDING') {
+          return res.status(400).json({ error: 'Transaction not found or already processed' });
+        }
+
+        await prisma.$transaction(async (tx) => {
+          // Update Transaction
+          await tx.transaction.update({
+            where: { id: transaction.id },
+            data: {
+              status: 'COMPLETED',
+              razorpayPaymentId: razorpay_payment_id
+            }
+          });
+
+          // Update User Balance
+          if (transaction.type === 'DEPOSIT') {
+            await tx.user.update({
+              where: { id: userId },
+              data: { walletBalance: { increment: transaction.amount } }
+            });
+          } else if (transaction.type === 'BUY') {
+            if (transaction.metalType === 'GOLD') {
+              await tx.user.update({
+                where: { id: userId },
+                data: { goldBalance: { increment: transaction.weight || 0 } }
+              });
+            } else if (transaction.metalType === 'SILVER') {
+              await tx.user.update({
+                where: { id: userId },
+                data: { silverBalance: { increment: transaction.weight || 0 } }
+              });
+            }
+          }
+        });
+
+        res.json({ success: true, message: 'Payment verified and transaction completed' });
+      } catch (error) {
+        console.error('Verify Payment Database Error:', error);
+        res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update transaction' });
+      }
+    } catch (error) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          error: 'Validation Error', 
+          details: error.errors.map(e => e.message) 
+        });
+      }
+      console.error('Verify Payment Request Error:', error);
+      res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+}
+
+module.exports = new PaymentController();

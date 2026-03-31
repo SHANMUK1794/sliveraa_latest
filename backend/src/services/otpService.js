@@ -1,0 +1,46 @@
+const axios = require('axios');
+
+class OtpService {
+  constructor() {
+    this.authKey = process.env.MSG91_AUTH_KEY;
+    // Using Flow API which is more robust for DLT templates
+    this.url = 'https://api.msg91.com/api/v5/flow/';
+  }
+
+  /**
+   * Send OTP using Flow API
+   * @param {string} mobile - Recipient mobile number
+   * @param {string} code - Generated OTP code
+   * @returns {Promise<any>}
+   */
+  async sendOtp(mobile, code) {
+    try {
+      const response = await axios.post(this.url, {
+        template_id: '69c6360a2ce9b288c7035137',
+        short_url: '1',
+        recipients: [
+          {
+            mobiles: mobile,
+            numeric: code // Matches ##numeric## in your DLT template
+          }
+        ]
+      }, {
+        headers: {
+          'authkey': this.authKey,
+          'Content-Type': 'application/json'
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('MSG91 Flow Error:', error.response?.data || error.message);
+      throw new Error('OTP delivery failed');
+    }
+  }
+
+  async verifyOtp(mobile, code) {
+    // Verification is handled by our database logic since we generate it
+    return true; 
+  }
+}
+
+module.exports = new OtpService();
