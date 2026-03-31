@@ -9,6 +9,9 @@ class PaymentController {
    * Flutter payload: amount, assetType, grams, userId
    */
   async createOrder(req, res) {
+    if (!paymentService.isAvailable) {
+      return res.status(501).json({ error: 'Not Implemented', message: 'Payment service is not configured' });
+    }
     try {
       const { userId } = req.user;
       
@@ -69,6 +72,9 @@ class PaymentController {
    * Verify Razorpay Payment Signature and Complete Transaction
    */
   async verifyPayment(req, res) {
+    if (!paymentService.isAvailable) {
+      return res.status(501).json({ error: 'Not Implemented', message: 'Payment service is not configured' });
+    }
     try {
       const { userId } = req.user;
       

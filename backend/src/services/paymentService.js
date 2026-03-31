@@ -3,10 +3,21 @@ const crypto = require('crypto');
 
 class PaymentService {
   constructor() {
-    this.razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    });
+    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+
+    if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+      this.razorpay = new Razorpay({
+        key_id: RAZORPAY_KEY_ID,
+        key_secret: RAZORPAY_KEY_SECRET,
+      });
+    } else {
+      this.razorpay = null;
+      console.warn('PaymentService: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set. Payment features are disabled.');
+    }
+  }
+
+  get isAvailable() {
+    return this.razorpay !== null;
   }
 
   /**
@@ -17,6 +28,9 @@ class PaymentService {
    * @returns {Promise<any>}
    */
   async createOrder(amount, currency = 'INR', receipt = 'receipt_' + Date.now()) {
+    if (!this.razorpay) {
+      throw new Error('Payment service is not configured');
+    }
     try {
       const order = await this.razorpay.orders.create({
         amount,
@@ -38,6 +52,9 @@ class PaymentService {
    * @returns {boolean}
    */
   verifySignature(orderId, paymentId, signature) {
+    if (!this.razorpay) {
+      throw new Error('Payment service is not configured');
+    }
     const text = orderId + '|' + paymentId;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
