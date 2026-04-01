@@ -67,7 +67,7 @@ class KycController {
         
         // If user provided name and dob, do comprehensive verification
         if (inputName && inputDob) {
-          response = await kycService.verifyPanComprehensive(idNumber);
+          response = await kycService.verifyPanComprehensive(idNumber, inputName, inputDob);
           
           if (!response.success) {
             return res.status(400).json({ success: false, error: 'Verification Failed', message: response.message });

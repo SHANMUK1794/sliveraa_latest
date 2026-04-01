@@ -40,9 +40,22 @@ class KycService {
   }
 
   /**
-   * Initialize DigiBoost/DigiLocker WebSDK Session
-   * @param {string} customId - Unique ID for the session (e.g. userId)
+   * Helper to send raw (unencrypted) request 
    */
+  async _postRaw(path, data) {
+    try {
+      const response = await axios.post(`${this.baseUrl}${path}`, data, {
+        headers: {
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Surepass API Raw Error [${path}]:`, error.response?.data || error.message);
+      throw error;
+    }
+  }
   async createDigiLockerSession(customId) {
     try {
       // Official Digiboost Initialize Payload (Minimal)
@@ -94,10 +107,11 @@ class KycService {
   /**
    * PAN Verification (Comprehensive)
    */
-  async verifyPanComprehensive(idNumber) {
-    return await this._post('/pan/pan-comprehensive', {
+  async verifyPanComprehensive(idNumber, fullName, dob) {
+    return await this._postRaw('/pan/pan-comprehensive', {
       id_number: idNumber,
-      masked_aadhaar_variant: "v1, v2, empty"
+      full_name: fullName,
+      dob: dob
     });
   }
 
@@ -105,7 +119,7 @@ class KycService {
    * PAN Verification (Basic)
    */
   async verifyPan(idNumber) {
-    return await this._post('/pan/pan-verification', {
+    return await this._postRaw('/pan/pan-verification', {
       id_number: idNumber
     });
   }
