@@ -32,10 +32,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _emailController.text,
       );
 
-      setState(() {
-        AppState().userName = _nameController.text;
-        AppState().userEmail = _emailController.text;
-      });
+      // Responsibility: Updating the entire user map to keep all screens in sync
+      final updatedUser = Map<String, dynamic>.from(AppState().currentUser);
+      updatedUser['name'] = _nameController.text;
+      updatedUser['email'] = _emailController.text;
+      
+      AppState().updateFromMap(updatedUser);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

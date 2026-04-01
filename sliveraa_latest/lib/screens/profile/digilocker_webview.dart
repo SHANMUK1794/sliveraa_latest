@@ -1,10 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:convert';
 import '../../core/api_service.dart';
 import '../../utils/app_state.dart';
+import '../../theme/app_colors.dart';
 
 class DigiLockerWebView extends StatefulWidget {
   const DigiLockerWebView({super.key});
@@ -18,6 +19,7 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
   bool _isLoading = true;
   String? _errorMessage;
   String? _clientId;
+  String? _url;
 
   @override
   void initState() {
@@ -28,225 +30,213 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
   Future<void> _fetchSession() async {
     try {
       final response = await ApiService().initDigiLocker();
-      
-      // The backend returns { data: { token, client_id, ... }, status_code: 200 }
-      final String token = response.data['data']?['token'] ?? '';
-      _clientId = response.data['data']?['client_id'];
-      
-      if (token.isEmpty) {
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
         setState(() {
-          _errorMessage = 'Invalid session token received';
+          _url = data['url'];
+          _clientId = data['client_id'];
+          _initWebViewController();
+        });
+      } else {
+        setState(() {
+          _errorMessage = response.data['message'] ?? 'Failed to initialize KYC session';
           _isLoading = false;
         });
-        return;
       }
-
-      _initializeWebView(token);
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _errorMessage = 'Connection Error: ${e.toString()}';
+        _isLoading = false;
+      });
     }
   }
 
-  void _initializeWebView(String token) {
-    const String gateway = "sandbox"; 
-
-    final String sdkHtml = """
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-          <title>Digiboost SDK</title>
-          <style>
-              body, html { margin: 0; padding: 0; height: 100%; width: 100%; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa; }
-              #digilocker-button { width: 90%; max-width: 400px; }
-              .loading-text { font-family: sans-serif; color: #666; font-size: 14px; }
-          </style>
-          <script src="https://cdn.jsdelivr.net/gh/surepassio/surepass-digiboost-web-sdk@latest/index.min.js"></script>
-      </head>
-      <body>
-          <div id="digilocker-button">
-              <p class="loading-text">Initializing verification...</p>
-          </div>
-
-          <script>
-            try {
-              window.DigiboostSdk({ 
-                gateway: "$gateway", 
-                token: "$token", 
-                selector: "#digilocker-button",
-                style: {
-                  backgroundColor: "#613AF5",
-                  color: "white",
-                  padding: "15px 30px",
-                  borderRadius: "12px",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  width: "100%",
-                  textAlign: "center",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(97, 58, 245, 0.3)"
-                },
-                onSuccess: function(data) {
-                  if (window.SurepassHandler) {
-                    window.SurepassHandler.postMessage(JSON.stringify({
-                      status: 'SUCCESS',
-                      data: data
-                    }));
-                  }
-                },
-                onFailure: function(error) {
-                  if (window.SurepassHandler) {
-                    window.SurepassHandler.postMessage(JSON.stringify({
-                      status: 'FAILURE',
-                      error: error
-                    }));
-                  }
-                }
-              });
-            } catch (err) {
-              if (window.SurepassHandler) {
-                window.SurepassHandler.postMessage(JSON.stringify({
-                  status: 'ERROR',
-                  message: err.message
-                }));
-              }
-            }
-          </script>
-      </body>
-      </html>
-    """;
-
+  void _initWebViewController() {
+    if (_url == null) return;
+    
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..addJavaScriptChannel(
-        'SurepassHandler',
-        onMessageReceived: (JavaScriptMessage message) {
-          _handleSdkCallback(message.message);
-        },
-      )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (String url) {
-            if (mounted) setState(() => _isLoading = false);
+          onPageStarted: (url) {
+            setState(() => _isLoading = true);
+          },
+          onPageFinished: (url) {
+            setState(() => _isLoading = false);
+            print('Page Finished: $url');
+          },
+          onWebResourceError: (error) {
+            print('Web Resource Error: ${error.description}');
+          },
+          onUrlChange: (change) {
+            final url = change.url ?? '';
+            print('URL Change detected: $url');
+            if (url.contains('status=')) {
+               _handleCallback(url);
+            }
           },
         ),
       )
-      ..loadHtmlString(sdkHtml);
+      ..loadRequest(Uri.parse(_url!));
   }
 
-  void _handleSdkCallback(String message) {
-    print('SDK Callback Received: $message');
+  void _handleCallback(String url) {
+    print('Processing Callback URL: $url');
     try {
-      final data = jsonDecode(message);
-      final String status = data['status'];
-
+      final uri = Uri.parse(url);
+      final status = uri.queryParameters['status'];
+      
       if (status == 'SUCCESS') {
-        print('Success signal detected - starting finalization...');
         _onVerificationComplete();
       } else if (status == 'FAILURE' || status == 'ERROR') {
-        print('Error signal detected: ${data['error'] ?? data['message']}');
         setState(() {
-          _errorMessage = data['error'] ?? data['message'] ?? 'Verification failed';
+          _errorMessage = uri.queryParameters['message'] ?? 'Verification failed';
         });
       }
     } catch (e) {
-      print('Callback JSON Parsing Error: $e');
+      print('Callback Handling Error: $e');
     }
   }
 
   Future<void> _onVerificationComplete() async {
-    print('Finalizing KYC for Client ID: $_clientId');
+    if (_clientId == null) return;
+    
     try {
       setState(() => _isLoading = true);
+      final response = await ApiService().finalizeDigiLocker(_clientId!);
       
-      if (_clientId != null) {
-        try {
-          final response = await ApiService().finalizeDigiLocker(_clientId!);
-          if (mounted) {
-            if (response.data['success'] == true) {
-              // Responsibility: Instant feedback on success
-              await context.read<AppState>().refreshStatus();
-              _showSuccessDialog();
-            } else {
-              // Responsibility: Explaining WHY backend rejected it
-              String message = response.data['message'] ?? 'Identity verification stalled. Please contact Silvra support.';
-              _showErrorDialog(message);
-            }
+      if (mounted) {
+        if (response.data['success'] == true) {
+          // Responsibility: Success Guidance
+          final appState = Provider.of<AppState>(context, listen: false);
+          // Actual status update from backend
+          final profileResponse = await ApiService().getUserProfile();
+          if (profileResponse.data != null) {
+             appState.updateFromMap(profileResponse.data);
           }
-        } catch (e) {
-          if (mounted) {
-            _showErrorDialog('Verification connection lost. Don\'t worry, your DigiLocker progress is saved. Please try refreshing your status later.');
-          }
+          _showSuccessDialog();
+        } else {
+          // Responsibility: Explain Why it failed
+          _showErrorDialog(response.data['message'] ?? 'Identity verification stalled. Please contact support.');
         }
       }
     } catch (e) {
-      print('Finalization Error: $e');
       if (mounted) {
-        setState(() {
-          _errorMessage = 'Server Sync Failed: ${e.toString()}';
-          _isLoading = false;
-        });
+        _showErrorDialog('Verification connection lost. Your progress is saved. Please check your profile status later.');
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 60),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Identity Verified!',
+              style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your KYC has been successfully completed. You can now start investing in your vault.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Exit WebView
+              },
+              child: Text(
+                'CONTINUE TO PORTFOLIO',
+                style: GoogleFonts.manrope(color: AppColors.primaryBrownGold, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 60),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Verification Stalled',
+              style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'OK',
+                style: GoogleFonts.manrope(color: AppColors.primaryBrownGold, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          'Verification',
-          style: GoogleFonts.manrope(fontWeight: FontWeight.w800, fontSize: 18),
-        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            // Smart Close: If they close it, we try to finalize anyway just in case
-            _onVerificationComplete();
-          },
+          icon: const Icon(Icons.close, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          if (!_isLoading)
-            TextButton(
-              onPressed: _onVerificationComplete,
-              child: Text(
-                'I HAVE COMPLETED',
-                style: GoogleFonts.manrope(
-                  color: Colors.blue,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-        ],
+        title: Text(
+          'DigiLocker Verification',
+          style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.black),
+        ),
+        centerTitle: true,
       ),
       body: Stack(
         children: [
           if (_errorMessage != null)
             Center(
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.error_outline, size: 64, color: Colors.red),
                     const SizedBox(height: 16),
                     Text(
-                      'Oops! Something went wrong',
-                      style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
                       _errorMessage!,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(color: Colors.grey),
+                      style: GoogleFonts.inter(fontSize: 14, color: Colors.black54),
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
@@ -257,25 +247,20 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
                         });
                         _fetchSession();
                       },
-                      child: const Text('Try Again'),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrownGold),
+                      child: const Text('Try Again', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
               ),
             )
-          else if (!_isLoading)
+          else if (_url != null)
             WebViewWidget(controller: _controller)
-          else
-            const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Securing verification...'),
-                ],
-              ),
-            ),
+          else if (!_isLoading)
+            const Center(child: Text('Unable to load KYC session')),
+            
+          if (_isLoading)
+            const Center(child: CircularProgressIndicator(color: AppColors.primaryBrownGold)),
         ],
       ),
     );

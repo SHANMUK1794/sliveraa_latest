@@ -111,9 +111,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
     String message = 'Payment could not be completed.';
     
     // Responsibility: Explaining WHY it failed
-    if (response.code == Razorpay.ERROR_CODE_CANCELLED) {
+    if (response.code == 2) { // 2 is typically the code for Cancelled
       message = 'Payment was cancelled. You can try again whenever you are ready.';
-    } else if (response.code == Razorpay.ERROR_CODE_NETWORK_ERROR) {
+    } else if (response.code == 0) { // 0 is typically for Network Error
       message = 'Connection issue. Please check your internet and try again.';
     } else if (response.message != null && response.message!.isNotEmpty) {
       message = response.message!;

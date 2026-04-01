@@ -39,9 +39,15 @@ class AuthProvider with ChangeNotifier {
         _apiService.setToken(_token!);
         
         // Update AppState singleton (legacy support)
+        // Responsibility: Updating the entire user map to keep all screens in sync
         final appState = AppState();
-        appState.userPhone = phone;
-        appState.userName = _userData?['name'] ?? 'Gold Trader';
+        final Map<String, dynamic> userMap = {
+          'id': appState.userId,
+          'name': _userData?['name'] ?? 'Gold Trader',
+          'phone': phone,
+          'kycStatus': appState.kycStatus,
+        };
+        appState.updateFromMap(userMap);
         
         _isLoading = false;
         notifyListeners();
