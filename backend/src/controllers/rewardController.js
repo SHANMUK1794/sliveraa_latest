@@ -27,6 +27,52 @@ class RewardController {
   }
 
   /**
+   * Add referral reward for both referrer and referee
+   */
+  async addReferralReward(req, res) {
+    try {
+      const { referrerId, refereeId } = req.body;
+
+      if (!referrerId || !refereeId) {
+        return res.status(400).json({
+          error: 'Invalid input',
+          message: 'referrerId and refereeId are required'
+        });
+      }
+
+      if (referrerId === refereeId) {
+        return res.status(400).json({
+          error: 'Invalid input',
+          message: 'referrerId and refereeId must be different users'
+        });
+      }
+
+      const success = await rewardService.creditReferralReward(referrerId, refereeId);
+
+      if (!success) {
+        return res.status(500).json({ error: 'Failed to credit referral reward' });
+      }
+
+      const rewards = await prisma.reward.findMany({
+        where: {
+          userId: { in: [referrerId, refereeId] },
+          type: 'REFERRAL'
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 2
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Referral reward credited successfully',
+        rewards
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  /**
    * Redeem points into wallet balance
    */
   async redeemPoints(req, res) {
