@@ -370,7 +370,7 @@ class _KycScreenState extends State<KycScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Manual Upload',
+            'Manual Verification',
             style: GoogleFonts.manrope(
               fontSize: 24,
               fontWeight: FontWeight.w800,
@@ -379,15 +379,13 @@ class _KycScreenState extends State<KycScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Please provide high-quality photos of your government issued ID documents.',
+            'Provide your PAN card details exactly as they appear on the document for verification.',
             style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF64748B), height: 1.5),
           ),
           const SizedBox(height: 32),
-          _buildIdInputCard('Enter 12-digit Aadhaar Number', _aadhaarController, Icons.badge_outlined, isAadhaar: true),
-          const SizedBox(height: 16),
           _buildIdInputCard('Enter 10-digit PAN Number', _panController, Icons.credit_card_outlined, isPan: true),
           const SizedBox(height: 16),
-          _buildIdInputCard('Full Name (as per PAN)', _fullNameController, Icons.person_outline_rounded),
+          _buildIdInputCard('Full Name (as per PAN)', _fullNameController, Icons.person_outline_rounded, isText: true),
           const SizedBox(height: 16),
           _buildDobInputCard('Date of Birth', _dobController),
           const SizedBox(height: 48),
@@ -420,7 +418,7 @@ class _KycScreenState extends State<KycScreen> {
     );
   }
 
-  Widget _buildIdInputCard(String label, TextEditingController controller, IconData icon, {bool isAadhaar = false, bool isPan = false}) {
+  Widget _buildIdInputCard(String label, TextEditingController controller, IconData icon, {bool isAadhaar = false, bool isPan = false, bool isText = false}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -457,10 +455,14 @@ class _KycScreenState extends State<KycScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: controller,
-            keyboardType: isPan ? TextInputType.text : TextInputType.number,
-            maxLength: isPan ? 10 : 12,
-            textCapitalization: isPan ? TextCapitalization.characters : TextCapitalization.none,
-            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 1.5),
+            keyboardType: (isPan || isText) ? TextInputType.text : TextInputType.number,
+            maxLength: isPan ? 10 : (isAadhaar ? 12 : null),
+            textCapitalization: isPan ? TextCapitalization.characters : (isText ? TextCapitalization.words : TextCapitalization.none),
+            style: GoogleFonts.inter(
+              fontSize: 18, 
+              fontWeight: FontWeight.w600, 
+              letterSpacing: isText ? 0.5 : 1.5
+            ),
             decoration: InputDecoration(
               counterText: '',
               hintText: isPan ? 'ABCDE1234F' : '0000 0000 0000',
