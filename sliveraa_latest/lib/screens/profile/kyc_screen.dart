@@ -18,6 +18,8 @@ class _KycScreenState extends State<KycScreen> {
   final TextEditingController _aadhaarController = TextEditingController();
   final TextEditingController _panController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
   String? _clientId;
   bool _isOtpStep = false;
   bool isDigiLockerStep = true;
@@ -43,6 +45,8 @@ class _KycScreenState extends State<KycScreen> {
     _aadhaarController.dispose();
     _panController.dispose();
     _otpController.dispose();
+    _fullNameController.dispose();
+    _dobController.dispose();
     super.dispose();
   }
 
@@ -382,6 +386,10 @@ class _KycScreenState extends State<KycScreen> {
           _buildIdInputCard('Enter 12-digit Aadhaar Number', _aadhaarController, Icons.badge_outlined, isAadhaar: true),
           const SizedBox(height: 16),
           _buildIdInputCard('Enter 10-digit PAN Number', _panController, Icons.credit_card_outlined, isPan: true),
+          const SizedBox(height: 16),
+          _buildIdInputCard('Full Name (as per PAN)', _fullNameController, Icons.person_outline_rounded),
+          const SizedBox(height: 16),
+          _buildDobInputCard('Date of Birth', _dobController),
           const SizedBox(height: 48),
           ElevatedButton(
             onPressed: isVerifying ? null : () {
@@ -459,6 +467,72 @@ class _KycScreenState extends State<KycScreen> {
               hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8).withOpacity(0.5)),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDobInputCard(String label, TextEditingController controller) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+                child: const Icon(Icons.calendar_today_outlined, color: Color(0xFF94A3B8), size: 24),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                label,
+                style: GoogleFonts.manrope(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1E293B)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: controller,
+            readOnly: true,
+            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
+            onTap: () async {
+              DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime(2000),
+                firstDate: DateTime(1950),
+                lastDate: DateTime.now(),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: AppColors.primaryBrownGold,
+                        onPrimary: Colors.white,
+                        onSurface: Colors.black,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (pickedDate != null) {
+                String formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                controller.text = formattedDate;
+              }
+            },
+            decoration: InputDecoration(
+              hintText: 'YYYY-MM-DD',
+              hintStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8).withOpacity(0.5)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              suffixIcon: const Icon(Icons.calendar_month_rounded),
             ),
           ),
         ],
@@ -583,10 +657,19 @@ class _KycScreenState extends State<KycScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid 10-digit PAN number')));
       return;
     }
+    if (_fullNameController.text.trim().isEmpty || _dobController.text.trim().isEmpty) {
+       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name and Date of Birth are required for PAN verification')));
+       return;
+    }
 
     setState(() => isVerifying = true);
     try {
-      final response = await ApiService().startKyc('PAN', pan);
+      final response = await ApiService().startKyc(
+        'PAN', 
+        pan, 
+        fullName: _fullNameController.text.trim(),
+        dob: _dobController.text.trim(),
+      );
 
       if (response.data['success']) {
         AppState().kycStatus = "Verified";

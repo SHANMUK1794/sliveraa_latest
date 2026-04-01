@@ -61,8 +61,44 @@ class KycController {
         });
         return res.json({ success: true, message: 'Aadhaar OTP generated successfully', data: response.data });
       } else if (idType === 'PAN') {
-        response = await kycService.verifyPan(idNumber);
-        // Instant PAN verify
+        const { fullName: inputName, dob: inputDob } = validated;
+        
+        // If user provided name and dob, do comprehensive verification
+        if (inputName && inputDob) {
+          response = await kycService.verifyPanComprehensive(idNumber);
+          
+          if (!response.success) {
+            return res.status(400).json({ success: false, error: 'Verification Failed', message: response.message });
+          }
+
+          const panData = response.data || {};
+          const officialName = (panData.full_name || '').toLowerCase().trim();
+          const officialDob = panData.dob || ''; // Format: YYYY-MM-DD
+
+          // Normalize input name for comparison
+          const normalizedInputName = inputName.toLowerCase().trim();
+
+          // We'll use a basic contains or exact match for now
+          const isNameMatch = officialName.includes(normalizedInputName) || normalizedInputName.includes(officialName);
+          const isDobMatch = officialDob === inputDob;
+
+          if (!isNameMatch || !isDobMatch) {
+            const mismatchFields = [];
+            if (!isNameMatch) mismatchFields.push('Full Name');
+            if (!isDobMatch) mismatchFields.push('Date of Birth');
+            
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Details Mismatch', 
+              message: `The provided ${mismatchFields.join(' and ')} do not match the PAN records.` 
+            });
+          }
+        } else {
+          // Fallback to basic verification
+          response = await kycService.verifyPan(idNumber);
+        }
+
+        // Instant PAN verify (Shared logic)
         await prisma.$transaction([
           prisma.kycDetail.upsert({
             where: { userId },

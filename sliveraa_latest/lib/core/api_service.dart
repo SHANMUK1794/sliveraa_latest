@@ -137,11 +137,15 @@ class ApiService {
   }
 
   // KYC Methods
-  Future<Response> startKyc(String idType, String idNumber) async {
-    return await _dio.post('kyc/start', data: {
+  Future<Response> startKyc(String idType, String idNumber, {String? fullName, String? dob}) async {
+    final Map<String, dynamic> data = {
       'idType': idType,
       'idNumber': idNumber,
-    });
+    };
+    if (fullName != null) data['fullName'] = fullName;
+    if (dob != null) data['dob'] = dob;
+    
+    return await _dio.post('kyc/start', data: data);
   }
 
   Future<Response> initDigiLocker() async {

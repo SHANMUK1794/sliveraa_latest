@@ -15,5 +15,6 @@ router.post('/savings/process-dues', savingsController.processDuePayments); // A
 // Rewards
 router.get('/rewards', rewardController.getRewards);
 router.post('/rewards/redeem', rewardController.redeemPoints);
+router.post('/rewards/referral', rewardController.addReferralReward);
 
 module.exports = router;

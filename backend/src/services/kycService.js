@@ -50,7 +50,7 @@ class KycService {
         data: {
           signup_flow: true,
           skip_main_screen: false,
-          callback_url: "https://silvra.app/kyc/callback"
+          redirect_url: "https://silvra.app/kyc/callback"
         }
       };
 
@@ -92,7 +92,17 @@ class KycService {
   }
 
   /**
-   * PAN Verification
+   * PAN Verification (Comprehensive)
+   */
+  async verifyPanComprehensive(idNumber) {
+    return await this._post('/pan/pan-comprehensive', {
+      id_number: idNumber,
+      masked_aadhaar_variant: "v1, v2, empty"
+    });
+  }
+
+  /**
+   * PAN Verification (Basic)
    */
   async verifyPan(idNumber) {
     return await this._post('/pan/pan-verification', {

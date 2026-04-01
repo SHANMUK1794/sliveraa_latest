@@ -44,7 +44,9 @@ const verifyOtpSchema = z.object({
 // KYC Schemas
 const kycStartSchema = z.object({
   idType: z.enum(['AADHAAR', 'PAN']),
-  idNumber: z.string().min(10, "Identification number is too short")
+  idNumber: z.string().min(10, "Identification number is too short"),
+  fullName: z.string().optional(), // For manual matching
+  dob: z.string().optional()       // For manual matching (YYYY-MM-DD)
 });
 
 const addressSchema = z.object({

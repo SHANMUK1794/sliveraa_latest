@@ -64,6 +64,7 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
           onPageFinished: (url) {
             setState(() => _isLoading = false);
             print('Page Finished: $url');
+            _checkForSuccessText();
           },
           onWebResourceError: (error) {
             print('Web Resource Error: ${error.description}');
@@ -72,14 +73,31 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
             final url = change.url ?? '';
             print('URL Change detected: $url');
             
-            // Intercept our unique callback URL or generic status parameters
-            if (url.startsWith('https://silvra.app/kyc/callback') || url.contains('status=')) {
+            // Intercept our unique redirect URL or generic status parameters
+            if (url.contains('silvra.app/kyc/callback') || url.contains('status=SUCCESS')) {
                _handleCallback(url);
             }
           },
         ),
       )
       ..loadRequest(Uri.parse(_url!));
+  }
+
+  Future<void> _checkForSuccessText() async {
+    try {
+      // Check for common success text in Surepass/DigiLocker screens
+      final String content = await _controller.runJavaScriptReturningResult(
+        "document.body.innerText"
+      ) as String;
+      
+      if (content.contains("Documents Shared Successfully") || 
+          content.contains("Verification Successful")) {
+        print('Success text detected! Manually triggering completion.');
+        _onVerificationComplete();
+      }
+    } catch (e) {
+      print('Error checking for success text: $e');
+    }
   }
 
   void _handleCallback(String url) {
