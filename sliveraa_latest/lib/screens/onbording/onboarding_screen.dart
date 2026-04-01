@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'onboarding_carousel_screen.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/app_state.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -11,6 +12,25 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Delay check until after first frame so context is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkSession();
+    });
+  }
+
+  void _checkSession() {
+    // We import AppState and use it here
+    final appState = AppState();
+    if (appState.userId.isNotEmpty) {
+       // Already active? Skip onboarding
+       // We'll navigate to Home in a future enhancement if desired, 
+       // but for now, we leave it to manual swipe to avoid "jumping"
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;

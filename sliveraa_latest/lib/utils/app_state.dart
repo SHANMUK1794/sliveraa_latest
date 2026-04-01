@@ -39,6 +39,7 @@ class AppState extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
       userId = prefs.getString('userId') ?? "";
+      biometricUserId = prefs.getString('biometricUserId') ?? "";
       userName = prefs.getString('userName') ?? "";
       
       final savedToken = prefs.getString('authToken');
@@ -73,6 +74,7 @@ class AppState extends ChangeNotifier {
 
   // User Details
   String userId = "";
+  String biometricUserId = ""; // Persists after logout specifically for fingerprint prompt
   String userName = "";
   Map<String, dynamic> currentUser = {};
 
@@ -126,6 +128,10 @@ class AppState extends ChangeNotifier {
     if (data['silverBalance'] != null) silverGrams = double.tryParse(data['silverBalance'].toString()) ?? silverGrams;
     if (data['auraPoints'] != null) auraPoints = int.tryParse(data['auraPoints'].toString()) ?? auraPoints;
     
+    if (userId.isNotEmpty) {
+      biometricUserId = userId; // Remember this ID for next biometric login
+    }
+    
     _saveIdentity();
     notifyListeners();
   }
@@ -133,6 +139,7 @@ class AppState extends ChangeNotifier {
   Future<void> _saveIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userId', userId);
+    await prefs.setString('biometricUserId', biometricUserId);
     await prefs.setString('userName', userName);
     
     // Save token if currently set in ApiService headers
@@ -152,7 +159,11 @@ class AppState extends ChangeNotifier {
 
   void updateTransactions(List<dynamic> data) => updateRecentActivity(data);
 
-  void clear() {
+  Future<void> clear() async {
+    final bool biometricWasEnabled = _isBiometricEnabled;
+    final String lastBiometricUserId = biometricUserId;
+    
+    // Clear in-memory user data
     userId = "";
     userName = "";
     currentUser = {};
@@ -164,14 +175,29 @@ class AppState extends ChangeNotifier {
     addresses = [];
     bankAccounts = [];
     
-    // Clear Token
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.remove('authToken');
-      prefs.remove('userId');
-      prefs.remove('userName');
-    });
-    ApiService().clearToken();
+    // Persistent Storage Logic
+    final prefs = await SharedPreferences.getInstance();
     
+    if (biometricWasEnabled) {
+      // If biometrics are enabled, we "Lock" the session rather than destroying it.
+      // We keep: authToken, biometricUserId, isBiometricEnabled.
+      // We only remove: userId, userName (to show "Locked" state vs "Logged In" state if needed)
+      await prefs.remove('userId');
+      await prefs.remove('userName');
+      
+      // Keep authToken and isBiometricEnabled intact
+      debugPrint('AppState: Session LOCKED via Biometrics. Token preserved.');
+    } else {
+      // Standard full purge
+      await prefs.remove('authToken');
+      await prefs.remove('userId');
+      await prefs.remove('userName');
+      await prefs.remove('isBiometricEnabled');
+      await prefs.remove('biometricUserId');
+      debugPrint('AppState: Full Session Purge completed.');
+    }
+    
+    ApiService().clearToken();
     notifyListeners();
   }
 

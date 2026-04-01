@@ -23,7 +23,8 @@ class BiometricService {
         localizedReason: reason,
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: true,
+          biometricOnly: false, // Set to false to allow device credential fallback if needed
+          useErrorDialogs: true,
         ),
       );
       return didAuthenticate;

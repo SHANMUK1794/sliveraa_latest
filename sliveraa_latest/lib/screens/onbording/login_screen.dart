@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'login_with_otp_screen.dart';
@@ -39,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Wait a brief moment for the UI to settle
     await Future.delayed(const Duration(milliseconds: 500));
     final appState = AppState();
-    if (appState.isBiometricEnabled && appState.userId.isNotEmpty) {
+    if (appState.isBiometricEnabled && (appState.userId.isNotEmpty || appState.biometricUserId.isNotEmpty)) {
       _handleBiometricLogin();
     }
   }
@@ -65,13 +66,21 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (authenticated) {
-      if (appState.userId.isNotEmpty) {
+      if (appState.userId.isNotEmpty || appState.biometricUserId.isNotEmpty) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (context) => const Center(child: CircularProgressIndicator()),
         );
         try {
+          // If the in-memory token was cleared during "Logout", restore it from storage
+          final prefs = await SharedPreferences.getInstance();
+          final savedToken = prefs.getString('authToken');
+          
+          if (savedToken != null && savedToken.isNotEmpty) {
+            ApiService().setToken(savedToken);
+          }
+
           final response = await ApiService().getUserProfile();
           if (mounted) {
             Navigator.pop(context); // Close loading
