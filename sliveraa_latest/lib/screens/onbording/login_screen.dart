@@ -9,7 +9,8 @@ import '../home/home_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../core/api_service.dart';
 import '../../utils/app_state.dart';
-import 'otp_verification_screen.dart';
+import '../../core/biometric_service.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,11 +22,84 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final BiometricService _biometricService = BiometricService();
+  bool _isBiometricSupported = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometrics();
+    // Automatic Biometric Prompt (PhonePe Style)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _triggerAutoBiometric();
+    });
+  }
+
+  Future<void> _triggerAutoBiometric() async {
+    // Wait a brief moment for the UI to settle
+    await Future.delayed(const Duration(milliseconds: 500));
+    final appState = AppState();
+    if (appState.isBiometricEnabled && appState.userId.isNotEmpty) {
+      _handleBiometricLogin();
+    }
+  }
+
+  Future<void> _checkBiometrics() async {
+    final available = await _biometricService.isBiometricAvailable();
+    if (mounted) {
+      setState(() => _isBiometricSupported = available);
+    }
+  }
+
+  Future<void> _handleBiometricLogin() async {
+    final appState = AppState();
+    if (!appState.isBiometricEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enable biometric login in Security settings first.')),
+      );
+      return;
+    }
+
+    final authenticated = await _biometricService.authenticate(
+      reason: 'Use your fingerprint to login safely into Silvra',
+    );
+
+    if (authenticated) {
+      if (appState.userId.isNotEmpty) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(child: CircularProgressIndicator()),
+        );
+        try {
+          final response = await ApiService().getUserProfile();
+          if (mounted) {
+            Navigator.pop(context); // Close loading
+             appState.updateFromMap(response.data);
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              (route) => false,
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Session expired. Please login with your password once.')),
+            );
+          }
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login with your password once to link your biometric.')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: SingleChildScrollView(
@@ -224,27 +298,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Login with OTP Option
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LoginWithOtpScreen(
-                            initialPhone: _emailController.text,
-                            initialPassword: _passwordController.text,
+                  // Login with OTP Option & Biometric Toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LoginWithOtpScreen(
+                                initialPhone: _emailController.text,
+                                initialPassword: _passwordController.text,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          'Login with OTP instead',
+                          style: GoogleFonts.inter(
+                            color: AppColors.primaryBrownGold,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
                           ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      'Login with OTP instead',
-                      style: GoogleFonts.inter(
-                        color: AppColors.primaryBrownGold,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
                       ),
-                    ),
+                      if (_isBiometricSupported) ...[
+                        const SizedBox(width: 8),
+                        const Text('|', style: TextStyle(color: Color(0xFFE2E8F0))),
+                        const SizedBox(width: 8),
+                         IconButton(
+                          onPressed: _handleBiometricLogin,
+                          icon: const Icon(Icons.fingerprint, color: Color(0xFF10B981)),
+                          tooltip: 'Biometric Login',
+                        ),
+                      ],
+                    ],
                   ),
 
                   const SizedBox(height: 48),

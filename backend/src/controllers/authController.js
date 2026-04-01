@@ -1,4 +1,5 @@
 const otpService = require('../services/otpService');
+const rewardService = require('../services/rewardService');
 const jwt = require('jsonwebtoken');
 const prisma = require('../models/prisma');
 const authUtils = require('../utils/authUtils');
@@ -126,15 +127,32 @@ class AuthController {
         const hashedPassword = password ? await authUtils.hashPassword(password) : null;
         const referralCode = await authUtils.generateReferralCode(prisma);
 
+        // Track and credit referrer if code is valid
+        let referrerId = null;
+        if (validated.referredBy) {
+          const referrer = await prisma.user.findUnique({
+            where: { referralCode: validated.referredBy }
+          });
+          if (referrer) {
+            referrerId = referrer.id;
+          }
+        }
+
         user = await prisma.user.create({
           data: {
             phoneNumber: phone,
             name: name || `User ${phone.slice(-4)}`,
             email: email ? email.toLowerCase() : null,
             password: hashedPassword,
-            referralCode
+            referralCode,
+            referredBy: referrerId // Link the user to the referrer
           }
         });
+
+        // Award points if there is a referrer
+        if (referrerId) {
+          await rewardService.creditReferralReward(referrerId, user.id);
+        }
       } else if (intent === 'reset-password') {
         if (!user) {
           return res.status(404).json({ error: 'Not found', message: 'No account found with this phone number' });

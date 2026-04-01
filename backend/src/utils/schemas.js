@@ -37,7 +37,8 @@ const verifyOtpSchema = z.object({
   intent: z.enum(['register', 'login', 'reset-password']),
   name: z.string().optional(),
   email: z.string().email().optional(),
-  password: passwordSchema.optional()
+  password: passwordSchema.optional(),
+  referredBy: z.string().optional() // New field for referral tracking
 });
 
 // KYC Schemas

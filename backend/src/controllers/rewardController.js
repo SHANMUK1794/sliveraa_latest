@@ -1,4 +1,5 @@
 const prisma = require('../models/prisma');
+const rewardService = require('../services/rewardService');
 
 class RewardController {
   /**
@@ -26,11 +27,27 @@ class RewardController {
   }
 
   /**
-   * Placeholder for adding referral rewards
+   * Redeem points into wallet balance
    */
-  async addReferralReward(req, res) {
-    // Logic to credit referral points
-    res.json({ success: true, message: 'Referral reward feature coming soon' });
+  async redeemPoints(req, res) {
+    try {
+      const { userId } = req.user;
+      const { points } = req.body;
+
+      if (!points || points <= 0) {
+        return res.status(400).json({ error: 'Invalid input', message: 'Points must be greater than zero' });
+      }
+
+      const amountCredited = await rewardService.redeemPoints(userId, points);
+
+      res.json({ 
+        success: true, 
+        message: `Successfully redeemed ${points} points for ₹${amountCredited}`,
+        amountCredited 
+      });
+    } catch (error) {
+      res.status(400).json({ error: 'Redemption failed', message: error.message });
+    }
   }
 }
 

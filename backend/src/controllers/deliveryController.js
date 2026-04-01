@@ -69,20 +69,32 @@ class DeliveryController {
       });
       if (!address) return res.status(404).json({ error: 'Address not found' });
 
-      // 2. Perform Transactional Deduction
+      // 2. Define Making Charges (Configurable)
+      // Gold: ₹500/g, Silver: ₹50/g
+      const MAKING_CHARGE_PER_GRAM = metalType === 'GOLD' ? 500 : 50;
+      const totalMakingCharge = weight * MAKING_CHARGE_PER_GRAM;
+
+      // 3. Perform Transactional Deduction
       const result = await prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({ where: { id: userId } });
         
-        const balance = metalType === 'GOLD' ? user.goldBalance : user.silverBalance;
-        if (balance < weight) {
-          throw new Error('Insufficient metal balance for delivery');
+        // Check Metal Balance
+        const metalBalance = metalType === 'GOLD' ? user.goldBalance : user.silverBalance;
+        if (metalBalance < weight) {
+          throw new Error(`Insufficient ${metalType} balance for delivery`);
         }
 
-        // Deduct Balance
+        // Check Wallet Balance for Making Charges
+        if (user.walletBalance < totalMakingCharge) {
+          throw new Error(`Insufficient wallet balance for making charges (Requires ₹${totalMakingCharge})`);
+        }
+
+        // Deduct Metal and Wallet Balance
         await tx.user.update({
           where: { id: userId },
           data: {
-            [metalType === 'GOLD' ? 'goldBalance' : 'silverBalance']: { decrement: weight }
+            [metalType === 'GOLD' ? 'goldBalance' : 'silverBalance']: { decrement: weight },
+            walletBalance: { decrement: totalMakingCharge }
           }
         });
 
@@ -97,25 +109,35 @@ class DeliveryController {
           }
         });
 
-        // Create Transaction History Log
+        // Create Transaction History Log (Metal Deduction)
         await tx.transaction.create({
           data: {
             userId,
-            type: 'WITHDRAWAL', // Using WITHDRAWAL for physical delivery
+            type: 'WITHDRAWAL',
             metalType,
             weight,
-            amount: 0, // No INR value for redemption? Or track spot value?
+            amount: 0, 
             status: 'COMPLETED'
           }
         });
 
-        return delivery;
+        // Create Transaction History Log (Making Charge)
+        await tx.transaction.create({
+          data: {
+            userId,
+            type: 'WITHDRAWAL', // Or a new type like 'SERVICE_FEE'
+            amount: totalMakingCharge,
+            status: 'COMPLETED'
+          }
+        });
+
+        return { delivery, makingCharge: totalMakingCharge };
       });
 
       res.status(201).json({ 
         success: true, 
         message: 'Delivery request initiated', 
-        delivery: result 
+        data: result 
       });
     } catch (error) {
       if (error.name === 'ZodError') {
