@@ -25,23 +25,81 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal() {
     _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException e, handler) {
+      onError: (DioException e, handler) async {
+        // Check for DNS failure / Connection Error
         if (e.type == DioExceptionType.connectionError || e.type == DioExceptionType.unknown) {
-          final message = e.message ?? '';
-          if (message.contains('Failed host lookup')) {
-            // This is almost certainly a Jio/ISP DNS blocking issue
-            return handler.reject(
-              DioException(
-                requestOptions: e.requestOptions,
-                error: 'Network issue (Jio/ISP DNS block). Please switch to Wi-Fi or set your Private DNS to "dns.google" in phone settings.',
-                type: DioExceptionType.connectionError,
-              ),
-            );
-          }
+           final message = (e.message ?? '').toLowerCase();
+           final isDnsFailure = message.contains('failed host lookup') || 
+                                message.contains('getaddrinfo failed') ||
+                                message.contains('errno 7') ||
+                                message.contains('errno 11001');
+
+           if (isDnsFailure) {
+             debugPrint('ApiService: DNS Failure detected. Attempting Secure DNS Fallback (DoH)...');
+             
+             final uri = e.requestOptions.uri;
+             final resolvedIp = await _resolveDnsWithHttps(uri.host);
+             
+             if (resolvedIp != null) {
+               debugPrint('ApiService: DNS Resolved to $resolvedIp. Retrying request...');
+               
+               // 1. Create a new URL with the IP instead of the hostname
+               final newUrl = e.requestOptions.uri.replace(host: resolvedIp).toString();
+               
+               // 2. Clone the request with the new URL and the original Host header
+               final options = e.requestOptions;
+               options.path = newUrl;
+               // Crucial: The "Host" header must stay as the original domain for Railway to route correctly
+               options.headers['Host'] = uri.host;
+               
+               try {
+                 final response = await _dio.fetch(options);
+                 return handler.resolve(response);
+               } catch (retryError) {
+                 debugPrint('ApiService: Fallback retry failed: $retryError');
+               }
+             } else {
+               debugPrint('ApiService: DNS Fallback failed to resolve IP.');
+             }
+
+             // Original informative error if fallback fails
+             return handler.reject(
+               DioException(
+                 requestOptions: e.requestOptions,
+                 error: 'Network issue (Jio/ISP DNS block). Please switch to Wi-Fi or set your Private DNS to "dns.google" in phone settings.',
+                 type: DioExceptionType.connectionError,
+               ),
+             );
+           }
         }
         return handler.next(e);
       },
     ));
+  }
+
+  /// Resolve a hostname using Google DNS-over-HTTPS
+  Future<String?> _resolveDnsWithHttps(String host) async {
+    try {
+      // Use a separate Dio instance to avoid circular interceptor calls
+      final dnsDio = Dio(BaseOptions(connectTimeout: const Duration(seconds: 5)));
+      final response = await dnsDio.get(
+        'https://dns.google/resolve',
+        queryParameters: {'name': host, 'type': 'A'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        final answers = data['Answer'] as List<dynamic>?;
+        
+        if (answers != null && answers.isNotEmpty) {
+          // Return the first valid A record IP
+          return answers[0]['data'] as String?;
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService: DNS-over-HTTPS error: $e');
+    }
+    return null;
   }
 
   Dio get dio => _dio;
