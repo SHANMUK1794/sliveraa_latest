@@ -6,8 +6,8 @@ class ApiService {
   // Automatically detect machine IP or localhost
   // Automatically switch between local and production
   static String get _baseUrl {
-    // Railway Production URL
-    const productionUrl = 'https://sliveraalatest-production.up.railway.app';
+    // Custom Production URL from GoDaddy
+    const productionUrl = 'https://api.silvras.com';
     
     // Always use Production URL for testing
     final baseUrl = productionUrl;
