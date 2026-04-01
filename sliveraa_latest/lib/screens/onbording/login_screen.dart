@@ -19,71 +19,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final BiometricService _biometricService = BiometricService();
-  bool _isBiometricSupported = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkBiometrics();
-  }
-
-  Future<void> _checkBiometrics() async {
-    final available = await _biometricService.isBiometricAvailable();
-    if (mounted) {
-      setState(() => _isBiometricSupported = available);
-    }
-  }
-
-  Future<void> _handleBiometricLogin() async {
-    final appState = AppState();
-    if (!appState.isBiometricEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enable biometric login in Security settings first.')),
-      );
-      return;
-    }
-
-    final authenticated = await _biometricService.authenticate(
-      reason: 'Use your fingerprint to login safely',
-    );
-
-    if (authenticated) {
-      // In a real app, you might use a stored refresh token here.
-      // For now, we'll guide the user or proceed if already tokenized.
-      if (appState.userId.isNotEmpty) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
-        
-        try {
-          // Re-fetch profile to ensure session is valid
-          final response = await ApiService().getUserProfile();
-          if (mounted) {
-            Navigator.pop(context); // Close loading
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-              (route) => false,
-            );
-          }
-        } catch (e) {
-          if (mounted) {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Session expired. Please login with your password once.')),
-            );
-          }
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please login with your password once to link your fingerprint.')),
-        );
-      }
-    }
-  }
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -206,116 +143,83 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 32),
 
                   // Login Button with Gradient
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () async {
-                            String identifier = _emailController.text.trim();
-                            String password = _passwordController.text;
+                  GestureDetector(
+                    onTap: () async {
+                      String identifier = _emailController.text.trim();
+                      String password = _passwordController.text;
 
-                            if (identifier.isEmpty || password.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Please enter your email/phone and password.')),
-                              );
-                              return;
-                            }
+                      if (identifier.isEmpty || password.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter credentials')),
+                        );
+                        return;
+                      }
 
-                            showDialog(
-                              context: context,
-                              barrierDismissible: false,
-                              builder: (context) => const Center(child: CircularProgressIndicator()),
-                            );
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(child: CircularProgressIndicator()),
+                      );
 
-                            try {
-                              final response = await ApiService().login(identifier, password);
-                              if (mounted) {
-                                final responseData = response.data;
-                                if (responseData['token'] != null) {
-                                  ApiService().setToken(responseData['token']);
-                                }
-                                AppState().updateFromMap(responseData['user'] ?? responseData);
+                      try {
+                        final response = await ApiService().login(identifier, password);
+                        if (mounted) {
+                          final responseData = response.data;
+                          if (responseData['token'] != null) {
+                            ApiService().setToken(responseData['token']);
+                          }
+                          AppState().updateFromMap(responseData['user'] ?? responseData);
 
-                                Navigator.pop(context); // Close loading
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const HomeScreen(),
-                                  ),
-                                  (route) => false,
-                                );
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                Navigator.pop(context); // Close loading
-                                String errorMsg = 'Login failed. Please check your credentials or network.';
-                                if (e is DioException) {
-                                  if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-                                    errorMsg = 'Connection timed out. Please check your internet connection.';
-                                  } else if (e.response?.statusCode == 401) {
-                                    errorMsg = 'Incorrect email or password. Please try again.';
-                                  } else if (e.response?.data != null && e.response?.data['error'] != null) {
-                                    errorMsg = e.response?.data['error'];
-                                  }
-                                }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(errorMsg),
-                                    backgroundColor: Colors.redAccent,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: Container(
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryBrownGold,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppColors.primaryBrownGold.withOpacity(0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                          Navigator.pop(context); // Close loading
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HomeScreen(),
                             ),
-                            child: Center(
-                              child: Text(
-                                'Login',
-                                style: GoogleFonts.manrope(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          Navigator.pop(context); // Close loading
+                          String errorMsg = 'Login failed. Please try again.';
+                          if (e is DioException && e.response?.data != null) {
+                            errorMsg = e.response?.data['error'] ?? errorMsg;
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(errorMsg),
+                              backgroundColor: Colors.redAccent,
                             ),
+                          );
+                        }
+                      }
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBrownGold,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primaryBrownGold.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Login',
+                          style: GoogleFonts.manrope(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      if (_isBiometricSupported) ...[
-                        const SizedBox(width: 16),
-                        GestureDetector(
-                          onTap: _handleBiometricLogin,
-                          child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
-                            ),
-                            child: const Icon(
-                              Icons.fingerprint_rounded,
-                              color: Color(0xFF16A34A),
-                              size: 32,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
 
                   const SizedBox(height: 16),
