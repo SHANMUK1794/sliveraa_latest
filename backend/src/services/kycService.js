@@ -49,7 +49,8 @@ class KycService {
       const payload = {
         data: {
           signup_flow: true,
-          skip_main_screen: false
+          skip_main_screen: false,
+          callback_url: "https://silvra.app/kyc/callback"
         }
       };
 

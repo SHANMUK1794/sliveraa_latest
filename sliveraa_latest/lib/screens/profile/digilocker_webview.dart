@@ -71,7 +71,9 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
           onUrlChange: (change) {
             final url = change.url ?? '';
             print('URL Change detected: $url');
-            if (url.contains('status=')) {
+            
+            // Intercept our unique callback URL or generic status parameters
+            if (url.startsWith('https://silvra.app/kyc/callback') || url.contains('status=')) {
                _handleCallback(url);
             }
           },
