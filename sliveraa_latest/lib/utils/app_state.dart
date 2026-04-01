@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/api_service.dart';
 
 class BankAccount {
   String bankName;
@@ -39,6 +40,12 @@ class AppState extends ChangeNotifier {
       _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
       userId = prefs.getString('userId') ?? "";
       userName = prefs.getString('userName') ?? "";
+      
+      final savedToken = prefs.getString('authToken');
+      if (savedToken != null && savedToken.isNotEmpty) {
+        ApiService().setToken(savedToken);
+      }
+      
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading preferences: $e');
@@ -127,6 +134,15 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userId', userId);
     await prefs.setString('userName', userName);
+    
+    // Save token if currently set in ApiService headers
+    // Note: Best practice is to set it explicitly, but this is a fail-safe
+  }
+
+  Future<void> setToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('authToken', token);
+    ApiService().setToken(token);
   }
 
   void updateRecentActivity(List<dynamic> data) {
@@ -147,6 +163,15 @@ class AppState extends ChangeNotifier {
     recentActivity = [];
     addresses = [];
     bankAccounts = [];
+    
+    // Clear Token
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('authToken');
+      prefs.remove('userId');
+      prefs.remove('userName');
+    });
+    ApiService().clearToken();
+    
     notifyListeners();
   }
 

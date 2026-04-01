@@ -357,12 +357,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Text(
-                AppState().userName.isNotEmpty ? '${AppState().userName}!' : 'Venu!',
-                style: GoogleFonts.inter(
-                  color: AppColors.primaryBrownGold,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  AppState().userName.isNotEmpty ? '${AppState().userName}!' : 'Venu!',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    color: AppColors.primaryBrownGold,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -667,12 +671,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          const Positioned(
-            right: 20,
-            top: 0,
-            bottom: 0,
-            child: Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFFCBD5E1)),
-          ),
+          // Removed the lock icon purely for UX, as it now triggers a popup on swipe
           Positioned(
             left: 4,
             top: 4,
@@ -681,15 +680,24 @@ class _HomeScreenState extends State<HomeScreen> {
               axis: Axis.horizontal,
               onDragEnd: (details) async {
                 if (details.offset.dx > swipeWidth * 0.6) {
-                  double amountValue = double.parse(selectedAmount.replaceAll('₹', '').replaceAll(',', ''));
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => SummaryScreen(
+                  final appState = context.read<AppState>();
+                  if (appState.kycStatus == "VERIFIED") {
+                    double amountValue = double.parse(selectedAmount.replaceAll('₹', '').replaceAll(',', ''));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SummaryScreen(
+                        isGold: isGoldSelected, 
+                        amount: amountValue, 
+                        grams: amountValue / (isGoldSelected ? PriceData.goldPrice : PriceData.silverPrice),
+                      )),
+                    );
+                  } else {
+                    _showKycRequiredDialog(SummaryScreen(
                       isGold: isGoldSelected, 
-                      amount: amountValue, 
-                      grams: amountValue / (isGoldSelected ? PriceData.goldPrice : PriceData.silverPrice),
-                    )),
-                  );
+                      amount: 0, // Placeholder as KYC is needed first
+                      grams: 0,
+                    ));
+                  }
                 }
               },
               feedback: _buildSwipeHandle(),

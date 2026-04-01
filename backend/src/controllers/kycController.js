@@ -16,7 +16,9 @@ class KycController {
       const data = {
         userId: req.body.userId || req.user?.userId,
         idType: req.body.idType,
-        idNumber: req.body.idNumber
+        idNumber: req.body.idNumber,
+        fullName: req.body.fullName,
+        dob: req.body.dob
       };
 
       // Validate

@@ -73,9 +73,9 @@ class _DigiLockerWebViewState extends State<DigiLockerWebView> {
             final url = change.url ?? '';
             print('URL Change detected: $url');
             
-            // Intercept our unique redirect URL or generic status parameters
-            if (url.contains('silvra.app/kyc/callback') || url.contains('status=SUCCESS')) {
-               _handleCallback(url);
+            // Intercept our unique redirect URL
+            if (url.contains('silvra-kyc-callback.local')) {
+               _onVerificationComplete();
             }
           },
         ),

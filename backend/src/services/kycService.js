@@ -50,7 +50,7 @@ class KycService {
         data: {
           signup_flow: true,
           skip_main_screen: false,
-          redirect_url: "https://silvra.app/kyc/callback"
+          redirect_url: 'https://silvra-kyc-callback.local/success'
         }
       };
 

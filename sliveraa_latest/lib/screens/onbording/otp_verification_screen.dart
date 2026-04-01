@@ -459,7 +459,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (mounted) {
         final responseData = response.data;
         if (responseData['token'] != null) {
-          ApiService().setToken(responseData['token']);
+          await AppState().setToken(responseData['token']);
         }
         
         AppState().updateFromMap(responseData);
