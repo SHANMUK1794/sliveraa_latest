@@ -11,9 +11,19 @@ class UserController {
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { kycDetails: true, transactions: { take: 10, orderBy: { createdAt: 'desc' } } }
+        include: { 
+          kycDetails: true, 
+          rewards: true,
+          transactions: { take: 10, orderBy: { createdAt: 'desc' } } 
+        }
       });
-      res.json(user);
+
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      // Calculate total points
+      const auraPoints = user.rewards.reduce((sum, r) => sum + r.points, 0);
+      
+      res.json({ ...user, auraPoints });
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
     }
