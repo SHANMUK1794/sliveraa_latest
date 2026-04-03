@@ -715,7 +715,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Your documents are being reviewed. This usually takes 24-48 hours. You will be notified once approved.',
+              'Your documents have been successfully verified. You can now access all features of the Silvra vault.',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14, height: 1.5),
             ),
@@ -760,7 +760,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 32),
             Text(
-              'KYC DONE!',
+              'KYC SUCCESS!',
               style: GoogleFonts.manrope(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF16A34A), letterSpacing: 1.5),
             ),
             const SizedBox(height: 12),
@@ -770,7 +770,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Hey ${state.userName.isEmpty ? 'Silveraa User' : state.userName}, your account is now fully verified. You can start investing in gold and silver without any restrictions!',
+              'Hey ${state.userName.isEmpty ? 'Silvra User' : state.userName}, your account is now fully verified. You can start investing in gold and silver without any restrictions!',
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(fontSize: 15, color: const Color(0xFF64748B), height: 1.5),
             ),

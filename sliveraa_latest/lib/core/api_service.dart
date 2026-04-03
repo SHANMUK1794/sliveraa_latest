@@ -222,4 +222,12 @@ class ApiService {
       'clientId': clientId,
     });
   }
+  // --- REWARDS ---
+  Future<Response> getRewards() async {
+    return await _dio.get('/rewards');
+  }
+
+  Future<Response> claimSpinReward(String wonItem) async {
+    return await _dio.post('/rewards/claim-spin', data: {'wonItem': wonItem});
+  }
 }

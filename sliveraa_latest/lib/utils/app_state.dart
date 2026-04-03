@@ -41,6 +41,8 @@ class AppState extends ChangeNotifier {
       userId = prefs.getString('userId') ?? "";
       biometricUserId = prefs.getString('biometricUserId') ?? "";
       userName = prefs.getString('userName') ?? "";
+      _kycStatus = prefs.getString('kycStatus') ?? "NOT_STARTED";
+      referralCode = prefs.getString('referralCode') ?? "";
       
       final savedToken = prefs.getString('authToken');
       if (savedToken != null && savedToken.isNotEmpty) {
@@ -113,7 +115,12 @@ class AppState extends ChangeNotifier {
   List<Map<String, dynamic>> recentActivity = [];
   List<Map<String, dynamic>> get transactions => recentActivity;
 
-  void updateFromMap(Map<String, dynamic> data) {
+  void updateFromMap(Map<String, dynamic> rawData) {
+    // If the data is wrapped in a 'user' key (common in some API responses)
+    final Map<String, dynamic> data = (rawData.containsKey('user') && rawData['user'] is Map) 
+        ? rawData['user'] 
+        : rawData;
+        
     currentUser = data;
     // Exhaustive search for ID
     userId = data['id']?.toString() ?? 
@@ -122,6 +129,7 @@ class AppState extends ChangeNotifier {
              userId;
     userName = data['name'] ?? userName;
     _kycStatus = (data['kycStatus'] ?? _kycStatus).toString().toUpperCase();
+    referralCode = data['referralCode']?.toString() ?? referralCode;
     
     // Portfolio / Aura
     if (data['goldBalance'] != null) goldGrams = double.tryParse(data['goldBalance'].toString()) ?? goldGrams;
@@ -141,6 +149,8 @@ class AppState extends ChangeNotifier {
     await prefs.setString('userId', userId);
     await prefs.setString('biometricUserId', biometricUserId);
     await prefs.setString('userName', userName);
+    await prefs.setString('kycStatus', kycStatus);
+    await prefs.setString('referralCode', referralCode);
     
     // Save token if currently set in ApiService headers
     // Note: Best practice is to set it explicitly, but this is a fail-safe
@@ -194,6 +204,8 @@ class AppState extends ChangeNotifier {
       await prefs.remove('userName');
       await prefs.remove('isBiometricEnabled');
       await prefs.remove('biometricUserId');
+      await prefs.remove('kycStatus');
+      await prefs.remove('referralCode');
       debugPrint('AppState: Full Session Purge completed.');
     }
     

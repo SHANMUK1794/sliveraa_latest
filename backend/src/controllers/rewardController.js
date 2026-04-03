@@ -95,6 +95,30 @@ class RewardController {
       res.status(400).json({ error: 'Redemption failed', message: error.message });
     }
   }
+
+  /**
+   * Claim a spin wheel reward
+   */
+  async claimSpinReward(req, res) {
+    try {
+      const { userId } = req.user;
+      const { wonItem } = req.body;
+
+      if (!wonItem) {
+        return res.status(400).json({ error: 'Input required', message: 'wonItem is required' });
+      }
+
+      const result = await rewardService.creditSpinReward(userId, wonItem.toString());
+
+      res.status(201).json({
+        success: true,
+        message: 'Reward claimed successfully',
+        data: result
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to claim reward', message: error.message });
+    }
+  }
 }
 
 module.exports = new RewardController();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../utils/app_state.dart';
 import '../../utils/extensions.dart';
 import '../../theme/app_colors.dart';
@@ -118,7 +119,14 @@ class ReferralScreen extends StatelessWidget {
             width: double.infinity,
             height: 56,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                final String inviteMessage = 
+                  "Hey! Join me on Silvra and start saving in Gold. "
+                  "Use my referral code $code to get ₹100 worth of Gold on your first investment!\n\n"
+                  "Download now: https://silvras.com";
+                
+                Share.share(inviteMessage);
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryBrownGold,
                 foregroundColor: Colors.white,

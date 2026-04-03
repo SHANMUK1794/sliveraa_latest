@@ -91,6 +91,68 @@ class RewardService {
       throw error;
     }
   }
+  /**
+   * Credit spin wheel reward to user
+   * @param {string} userId
+   * @param {string} wonItem - The label from the wheel
+   */
+  async creditSpinReward(userId, wonItem) {
+    try {
+      let points = 0;
+      let goldAmount = 0;
+      let description = `Spin Wheel Reward: ${wonItem}`;
+      let type = 'SPIN_WHEEL';
+
+      if (wonItem.includes('%')) {
+        // Coupon logic (placeholder)
+        description = `Spin Wheel Reward: ${wonItem} Discount Coupon`;
+      } else if (wonItem === 'GOLD') {
+        goldAmount = 0.001; // 1mg Gold
+        description = 'Spin Wheel Reward: 1mg 24K Gold';
+      } else if (wonItem === 'FREE') {
+        description = 'Spin Wheel Reward: Mystery Box';
+      } else if (!isNaN(parseInt(wonItem))) {
+        points = parseInt(wonItem);
+        description = `Spin Wheel Reward: ${points} Aura Coins`;
+      }
+
+      await prisma.$transaction(async (tx) => {
+        if (points > 0) {
+          await tx.reward.create({
+            data: {
+              userId,
+              points,
+              description,
+              type
+            }
+          });
+        }
+
+        if (goldAmount > 0) {
+          await tx.user.update({
+            where: { id: userId },
+            data: { goldBalance: { increment: goldAmount } }
+          });
+          
+          await tx.transaction.create({
+            data: {
+              userId,
+              type: 'REWARD',
+              metalType: 'GOLD',
+              amount: 0, // Points are free
+              weight: goldAmount,
+              status: 'COMPLETED'
+            }
+          });
+        }
+      });
+
+      return { success: true, points, goldAmount };
+    } catch (error) {
+      console.error('Spin Reward Error:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = new RewardService();

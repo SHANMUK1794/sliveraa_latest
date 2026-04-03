@@ -228,11 +228,11 @@ class KycController {
       // Status check
       if (response.success || response.status_code === 200) {
         const aadhaarData = response.data?.aadhaar_xml_data || {};
-        const aadhaarNumber = aadhaarData.masked_aadhaar || 'DIGILOCKER_VERIFIED'; // Masked Aadhar for tracking
+        // Use masked_aadhaar as the unique document key to prevent duplicate accounts
+        const docNumber = aadhaarData.masked_aadhaar || 
+                         (response.data?.digilocker_metadata?.name + response.data?.digilocker_metadata?.dob); 
 
         // Duplicate Check: Ensure this person isn't already verified elsewhere
-        // We check against the unique ID provided by Surepass if available
-        const docNumber = response.data?.digilocker_metadata?.name + response.data?.digilocker_metadata?.dob; // Fallback unique key
         
         const existingIdentity = await prisma.kycDetail.findFirst({
             where: {

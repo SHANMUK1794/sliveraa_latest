@@ -70,7 +70,7 @@ class _RewardsScreenState extends State<RewardsScreen>
         setState(() {
           _isSpinning = false;
         });
-        _showWinDialog();
+        _claimRewardAndShowDialog();
       }
     });
   }
@@ -106,6 +106,25 @@ class _RewardsScreenState extends State<RewardsScreen>
     );
 
     await _controller.forward(from: 0);
+  }
+
+  Future<void> _claimRewardAndShowDialog() async {
+    try {
+      final response = await ApiService().claimSpinReward(_wonItem);
+      if (response.data['success'] == true) {
+        // Refresh profile to get updated points/gold
+        final profileResponse = await ApiService().getUserProfile();
+        if (profileResponse.data != null) {
+          AppState().updateFromMap(profileResponse.data);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error claiming spin reward: $e');
+    }
+    
+    if (mounted) {
+      _showWinDialog();
+    }
   }
 
   void _showInfoMessage(String message) {
@@ -342,7 +361,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '1,250',
+                    AppState().auraPoints.toLocaleString(),
                     style: GoogleFonts.manrope(
                       fontSize: 19,
                       fontWeight: FontWeight.w900,

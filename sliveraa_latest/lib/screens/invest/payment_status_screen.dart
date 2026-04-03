@@ -18,7 +18,7 @@ class PaymentStatusScreen extends StatelessWidget {
     required this.amount,
     this.transactionId = 'TXN_PENDING',
     this.paymentMethod = 'UPI/Razorpay',
-    this.userName = 'Silveraa User',
+    this.userName = 'Silvra User',
     this.errorMessage,
   });
 

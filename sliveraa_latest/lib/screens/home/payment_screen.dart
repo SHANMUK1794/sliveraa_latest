@@ -50,7 +50,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     var options = {
       'key': 'rzp_test_YOUR_KEY_HERE', // User should replace this in production
       'amount': (widget.amount * 100).toInt(), // Amount in paise
-      'name': 'Silveraa',
+      'name': 'Silvra',
       'order_id': widget.orderId, // Real order ID from backend
       'description': 'Purchase of ${widget.grams.toStringAsFixed(3)}gm ${widget.isGold ? 'Gold' : 'Silver'}',
       'timeout': 300, // in seconds

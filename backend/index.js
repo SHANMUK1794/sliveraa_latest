@@ -10,6 +10,7 @@ const paymentRoutes = require('./src/routes/paymentRoutes');
 const kycRoutes = require('./src/routes/kycRoutes');
 const deliveryRoutes = require('./src/routes/deliveryRoutes');
 const investmentRoutes = require('./src/routes/investmentRoutes');
+const rewardRoutes = require('./src/routes/rewardRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,10 +29,11 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/invest', investmentRoutes);
+app.use('/api/rewards', rewardRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Silveraa Backend is running' });
+  res.json({ status: 'OK', message: 'Silvra Backend is running' });
 });
 
 // Error handling middleware
@@ -41,5 +43,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Silveraa Backend running on http://localhost:${PORT}`);
+  console.log(`🚀 Silvra Backend running on http://localhost:${PORT}`);
 });
