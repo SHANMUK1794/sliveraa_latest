@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../core/api_service.dart';
 import '../../utils/app_state.dart';
-import 'home_screen.dart';
-
 import '../invest/payment_status_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -14,6 +12,7 @@ class PaymentScreen extends StatefulWidget {
   final String orderId;
   final bool isGold;
   final double grams;
+  final String? method; // Pre-selected method (card, upi, netbanking)
 
   const PaymentScreen({
     super.key, 
@@ -21,6 +20,7 @@ class PaymentScreen extends StatefulWidget {
     required this.orderId,
     required this.isGold,
     required this.grams,
+    this.method,
   });
 
   @override
@@ -55,11 +55,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
       'description': 'Purchase of ${widget.grams.toStringAsFixed(3)}gm ${widget.isGold ? 'Gold' : 'Silver'}',
       'timeout': 300, // in seconds
       'prefill': {
-        'contact': state.userPhone,
+        'contact': _formatPhone(state.userPhone),
         'email': state.userEmail,
+        if (widget.method != null) 'method': widget.method,
       },
       'external': {
         'wallets': ['paytm']
+      },
+      'theme': {
+        'color': widget.isGold ? '#CAA779' : '#1E293B',
+      },
+      'modal': {
+        'confirm_close': true,
       }
     };
 
@@ -82,7 +89,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (verifyResponse.data['success'] == true) {
         // Refresh profile to show new balance
-        await context.read<AppState>().refreshStatus();
+        if (mounted) {
+          await context.read<AppState>().refreshStatus();
+        }
         
         if (mounted) {
           Navigator.pushReplacement(
@@ -110,11 +119,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     
     String message = 'Payment could not be completed.';
     
-    // Responsibility: Explaining WHY it failed
-    if (response.code == 2) { // 2 is typically the code for Cancelled
+    // Using official Razorpay error constants for better reliability
+    if (response.code == Razorpay.PAYMENT_CANCELLED) {
       message = 'Payment was cancelled. You can try again whenever you are ready.';
-    } else if (response.code == 0) { // 0 is typically for Network Error
+    } else if (response.code == Razorpay.NETWORK_ERROR) {
       message = 'Connection issue. Please check your internet and try again.';
+    } else if (response.code == Razorpay.INVALID_OPTIONS) {
+      message = 'Technical error: Invalid payment options. Please contact support.';
     } else if (response.message != null && response.message!.isNotEmpty) {
       message = response.message!;
     }
@@ -133,6 +144,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _handleExternalWallet(ExternalWalletResponse response) {
     debugPrint('External Wallet Selected: ${response.walletName}');
+  }
+
+  String _formatPhone(String? phone) {
+    if (phone == null || phone.isEmpty) return '';
+    String clean = phone.replaceAll(RegExp(r'\D'), '');
+    if (clean.length == 10) return '+91$clean';
+    if (!phone.startsWith('+')) return '+$clean';
+    return phone;
   }
 
   void _showError(String message) {
@@ -196,7 +215,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       width: 100,
       height: 100,
       decoration: BoxDecoration(
-        color: AppColors.primaryBrownGold.withOpacity(0.1),
+        color: AppColors.primaryBrownGold.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(Icons.payment_rounded, size: 40, color: AppColors.primaryBrownGold),
@@ -255,26 +274,158 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildProcessingIcon() {
+    return const _SecureHandshakeAnimation();
+  }
+}
+
+class _SecureHandshakeAnimation extends StatefulWidget {
+  const _SecureHandshakeAnimation();
+
+  @override
+  State<_SecureHandshakeAnimation> createState() => _SecureHandshakeAnimationState();
+}
+
+class _SecureHandshakeAnimationState extends State<_SecureHandshakeAnimation> with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _rotateController;
+  int _iconIndex = 0;
+
+  final List<IconData> _methodIcons = [
+    Icons.credit_card_rounded,
+    Icons.account_balance_rounded,
+    Icons.qr_code_2_rounded,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+
+    _rotateController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    )..addListener(() {
+      int newIndex = ((_rotateController.value * _methodIcons.length) % _methodIcons.length).floor();
+      if (newIndex != _iconIndex) {
+        setState(() => _iconIndex = newIndex);
+      }
+    })..repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _rotateController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        SizedBox(
+        // Pulsating Rings
+        ...List.generate(2, (index) {
+          return AnimatedBuilder(
+            animation: _pulseController,
+            builder: (context, child) {
+              double val = (_pulseController.value + (index * 0.5)) % 1.0;
+              return Container(
+                width: 140 * val + 60,
+                height: 140 * val + 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primaryBrownGold.withValues(alpha: 0.3 * (1 - val)),
+                    width: 2,
+                  ),
+                ),
+              );
+            },
+          );
+        }),
+        
+        // Central Shield & Rotating Method Icons
+        Container(
           width: 100,
           height: 100,
-          child: CircularProgressIndicator(
-            strokeWidth: 8,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBrownGold.withOpacity(0.2)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryBrownGold.withValues(alpha: 0.15),
+                blurRadius: 30,
+                spreadRadius: 10,
+              )
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Spinning outer ring
+              RotationTransition(
+                turns: _rotateController,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.primaryBrownGold.withValues(alpha: 0.1),
+                      width: 4,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 0,
+                        left: 36,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryBrownGold,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Dynamic Icon Transition
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child));
+                },
+                child: Icon(
+                  _methodIcons[_iconIndex],
+                  key: ValueKey(_iconIndex),
+                  size: 36,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(
-          width: 100,
-          height: 100,
-          child: CircularProgressIndicator(
-            strokeWidth: 8,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBrownGold),
+        // Shield badge in the corner
+        Positioned(
+          bottom: 10,
+          right: 10,
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFF22C55E),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.security_rounded, size: 16, color: Colors.white),
           ),
         ),
-        const Icon(Icons.security_rounded, size: 40, color: Color(0xFF1E293B)),
       ],
     );
   }

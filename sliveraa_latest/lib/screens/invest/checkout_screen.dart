@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/extensions.dart';
 import '../../theme/app_colors.dart';
+import 'package:lottie/lottie.dart';
 import '../home/payment_screen.dart';
 
 class CheckoutScreen extends StatelessWidget {
@@ -59,7 +60,13 @@ class CheckoutScreen extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: isLargeAmount ? _buildLargeAmountOptions() : _buildSmallAmountOptions(),
+              child: Column(
+                children: [
+                   isLargeAmount ? _buildLargeAmountOptions(context) : _buildSmallAmountOptions(context),
+                   const SizedBox(height: 32),
+                   _buildCardOptions(context),
+                ],
+              ),
             ),
           ),
           if (isLargeAmount) _buildLimitNotice(),
@@ -95,7 +102,7 @@ class CheckoutScreen extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: isGold ? const Color(0xFFF5EDE3) : const Color(0xFFF1F5F9),
+              color: isGold ? const Color(0xFFF5EDE3) : const Color(0xFFF1F5F9).withValues(alpha: 1.0),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -123,7 +130,7 @@ class CheckoutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallAmountOptions() {
+  Widget _buildSmallAmountOptions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -137,17 +144,17 @@ class CheckoutScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildUPIItem('Paytm', Icons.account_balance_wallet_rounded),
-            _buildUPIItem('PhonePe', Icons.wallet_rounded),
-            _buildUPIItem('GPay', Icons.account_balance_wallet_outlined),
-            _buildUPIItem('Jupiter', Icons.rocket_launch_rounded),
+            _buildUPIItem(context, 'Paytm', Icons.account_balance_wallet_rounded),
+            _buildUPIItem(context, 'PhonePe', Icons.wallet_rounded),
+            _buildUPIItem(context, 'GPay', Icons.account_balance_wallet_outlined),
+            _buildUPIItem(context, 'Jupiter', Icons.rocket_launch_rounded),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildLargeAmountOptions() {
+  Widget _buildLargeAmountOptions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,10 +166,10 @@ class CheckoutScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildBankItem('HDFC Bank', Icons.account_balance),
-            _buildBankItem('ICICI Bank', Icons.account_balance),
-            _buildBankItem('Axis Bank', Icons.account_balance),
-            _buildBankItem('All banks', Icons.apps),
+            _buildBankItem(context, 'HDFC Bank', Icons.account_balance),
+            _buildBankItem(context, 'ICICI Bank', Icons.account_balance),
+            _buildBankItem(context, 'Axis Bank', Icons.account_balance),
+            _buildBankItem(context, 'All banks', Icons.apps),
           ],
         ),
         const SizedBox(height: 40),
@@ -174,9 +181,9 @@ class CheckoutScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildBankItem('SBI Bank', Icons.account_balance),
-            _buildBankItem('Kotak Bank', Icons.account_balance),
-            _buildBankItem('Other Banks', Icons.more_horiz),
+            _buildBankItem(context, 'SBI Bank', Icons.account_balance),
+            _buildBankItem(context, 'Kotak Bank', Icons.account_balance),
+            _buildBankItem(context, 'Other Banks', Icons.more_horiz),
           ],
         ),
       ],
@@ -219,52 +226,187 @@ class CheckoutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildUPIItem(String label, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFF1F5F9)),
+  Widget _buildUPIItem(BuildContext context, String label, IconData icon) {
+    return InkWell(
+      onTap: () => _handlePaymentSelection(context, label),
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+            ),
+            child: Icon(
+              icon, 
+              color: isGold ? AppColors.primaryBrownGold : const Color(0xFF1E293B), 
+              size: 28
+            ),
           ),
-          child: Icon(
-            icon, 
-            color: isGold ? AppColors.primaryBrownGold : const Color(0xFF1E293B), 
-            size: 28
+          const SizedBox(height: 10),
+          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBankItem(BuildContext context, String label, IconData icon) {
+    return InkWell(
+      onTap: () => _handlePaymentSelection(context, label),
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))
+              ],
+            ),
+            child: Icon(
+              icon, 
+              color: isGold ? AppColors.primaryBrownGold : const Color(0xFF1E293B), 
+              size: 28
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardOptions(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pay via Cards',
+          style: GoogleFonts.manrope(fontSize: 16, fontWeight: FontWeight.w800, color: const Color(0xFF111827)),
+        ),
+        const SizedBox(height: 20),
+        InkWell(
+          onTap: () => _handlePaymentSelection(context, 'Credit/Debit Card'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.credit_card_rounded, color: Color(0xFF1E293B)),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Credit / Debit Card',
+                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF111827)),
+                      ),
+                      Text(
+                        'Visa, Mastercard, RuPay & more',
+                        style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
       ],
     );
   }
 
-  Widget _buildBankItem(String label, IconData icon) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFF1F5F9)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))
+  void _handlePaymentSelection(BuildContext context, String label) {
+    // Standardize method for Razorpay prefill
+    String? razorpayMethod;
+    String lowerLabel = label.toLowerCase();
+    
+    if (lowerLabel.contains('paytm') || lowerLabel.contains('phonepe') || 
+        lowerLabel.contains('gpay') || lowerLabel.contains('jupiter') ||
+        lowerLabel.contains('upi')) {
+      razorpayMethod = 'upi';
+    } else if (lowerLabel.contains('bank') || lowerLabel.contains('netbanking')) {
+      razorpayMethod = 'netbanking';
+    } else if (lowerLabel.contains('card')) {
+      razorpayMethod = 'card';
+    }
+
+    // Show Coin Transfer Animation Overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        Future.delayed(const Duration(milliseconds: 1800), () {
+          if (context.mounted) {
+            Navigator.pop(context); // Close dialog
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PaymentScreen(
+                  amount: totalAmount,
+                  orderId: 'INTERNAL_${label.toUpperCase().replaceAll(' ', '_')}_PENDING',
+                  isGold: isGold,
+                  grams: isGold ? 0.1 : 868.0,
+                  method: razorpayMethod,
+                ),
+              ),
+            );
+          }
+        });
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.network(
+                'https://lottie.host/6276063e-6d73-455a-9d9e-108873099905/U4aXvjX9mH.json',
+                width: 200,
+                height: 200,
+                repeat: true,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Transferring to Secure Vault...',
+                style: GoogleFonts.manrope(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Initiating $label',
+                style: GoogleFonts.inter(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
-          child: Icon(
-            icon, 
-            color: isGold ? AppColors.primaryBrownGold : const Color(0xFF1E293B), 
-            size: 28
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
-      ],
+        );
+      },
     );
   }
 

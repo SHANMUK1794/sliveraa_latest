@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../home/home_screen.dart';
 import '../../utils/extensions.dart';
+import 'package:lottie/lottie.dart';
 
 class PaymentStatusScreen extends StatelessWidget {
   final bool isSuccess;
@@ -88,13 +89,38 @@ class PaymentStatusScreen extends StatelessWidget {
             
             const SizedBox(height: 48),
             
-            // Transaction Details Card
-            _buildTransactionCard(),
+            const SizedBox(height: 48),
+            
+            // Transaction Details Card with Slide-up Animation
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutBack,
+              builder: (context, value, child) {
+                return Transform.translate(
+                  offset: Offset(0, 50 * (1 - value)),
+                  child: Opacity(
+                    opacity: value,
+                    child: _buildTransactionCard(),
+                  ),
+                );
+              },
+            ),
             
             const SizedBox(height: 48),
             
-            // Buttons
-            _buildActionButtons(context),
+            // Buttons with fade-in
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 600),
+              curve: const Interval(0.5, 1.0, curve: Curves.easeIn),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: _buildActionButtons(context),
+                );
+              },
+            ),
             
             const SizedBox(height: 40),
           ],
@@ -104,45 +130,52 @@ class PaymentStatusScreen extends StatelessWidget {
   }
 
   Widget _buildStatusIcon() {
-    final color = isSuccess ? const Color(0xFF22C55E) : const Color(0xFFEF4444);
-    
+    final lottieUrl = isSuccess
+        ? 'https://lottie.host/80400b14-07d4-4f90-8e1d-c5643a6d71b8/6npxM9fK5w.json'
+        : 'https://lottie.host/cb0b8a21-9964-42f4-8a4d-06487e472621/72Z1e6dAnP.json';
+
+    // Celebration Lottie for success
+    const coinBurstUrl = 'https://lottie.host/6276063e-6d73-455a-9d9e-108873099905/U4aXvjX9mH.json';
+
     return Stack(
       alignment: Alignment.center,
+      clipBehavior: Clip.none,
       children: [
+        if (isSuccess)
+          Positioned(
+            top: -100,
+            child: SizedBox(
+              width: 400,
+              height: 400,
+              child: Lottie.network(
+                coinBurstUrl,
+                repeat: true,
+              ),
+            ),
+          ),
         // Outer Glow/Blur
         Container(
-          width: 140,
-          height: 140,
+          width: 180,
+          height: 180,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.2),
-                blurRadius: 40,
-                spreadRadius: 10,
+                color: (isSuccess ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.1),
+                blurRadius: 50,
+                spreadRadius: 20,
               )
             ],
           ),
         ),
-        // Main Circle
-        Container(
-          width: 90,
-          height: 90,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              )
-            ],
-          ),
-          child: Icon(
-            isSuccess ? Icons.check_rounded : Icons.close_rounded,
-            color: Colors.white,
-            size: 50,
+        // Lottie Animation
+        SizedBox(
+          width: 160,
+          height: 160,
+          child: Lottie.network(
+            lottieUrl,
+            repeat: false,
+            fit: BoxFit.contain,
           ),
         ),
       ],
@@ -173,13 +206,22 @@ class PaymentStatusScreen extends StatelessWidget {
           _buildDivider(),
           _buildDetailRow('AMOUNT PAID', '₹${amount.toLocaleString()}'),
           _buildDivider(),
-          _buildDetailRow('PAYMENT METHOD', paymentMethod, showUpiIcon: true),
+          _buildDetailRow('PAYMENT METHOD', paymentMethod, showMethodIcon: true),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {bool showUpiIcon = false}) {
+  Widget _buildDetailRow(String label, String value, {bool showMethodIcon = false}) {
+    IconData methodIcon = Icons.payment_rounded;
+    if (value.toLowerCase().contains('upi')) {
+      methodIcon = Icons.qr_code_2_rounded;
+    } else if (value.toLowerCase().contains('card')) {
+      methodIcon = Icons.credit_card_rounded;
+    } else if (value.toLowerCase().contains('bank') || value.toLowerCase().contains('net')) {
+      methodIcon = Icons.account_balance_rounded;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -214,7 +256,7 @@ class PaymentStatusScreen extends StatelessWidget {
                     textAlign: TextAlign.end,
                   ),
                 ),
-                if (showUpiIcon) ...[
+                if (showMethodIcon) ...[
                   const SizedBox(width: 8),
                   Container(
                   padding: const EdgeInsets.all(2),
@@ -222,7 +264,7 @@ class PaymentStatusScreen extends StatelessWidget {
                     border: Border.all(color: const Color(0xFFCBD5E1)),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Icon(Icons.account_balance_wallet_outlined, size: 12, color: Color(0xFF1E293B)),
+                  child: Icon(methodIcon, size: 12, color: const Color(0xFF1E293B)),
                 ),
               ],
             ],
