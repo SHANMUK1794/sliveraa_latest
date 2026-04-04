@@ -179,6 +179,24 @@ class RewardService {
       return null;
     }
   }
+
+  /**
+   * Determine a spin result server-side
+   */
+  async generateSpinResult() {
+    const labels = ['10%', 'GOLD', '25', 'FREE', '10%', '100', '5%', '50'];
+    const weights = [20, 1, 20, 5, 20, 10, 20, 20]; 
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let random = Math.random() * totalWeight;
+
+    for (let i = 0; i < labels.length; i++) {
+      if (random < weights[i]) {
+        return { index: i, label: labels[i] };
+      }
+      random -= weights[i];
+    }
+    return { index: 2, label: '25' }; 
+  }
 }
 
 module.exports = new RewardService();

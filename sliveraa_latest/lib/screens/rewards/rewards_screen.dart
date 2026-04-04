@@ -87,28 +87,52 @@ class _RewardsScreenState extends State<RewardsScreen>
   Future<void> _spin() async {
     if (_isSpinning) return;
 
-    final targetIndex = math.Random().nextInt(_wheelLabels.length);
-    final segmentAngle = (2 * math.pi) / _wheelLabels.length;
-    final normalizedStart = _rotation % (2 * math.pi);
-    final targetAngle = -(targetIndex * segmentAngle) - (segmentAngle / 2);
-    final totalRotation = normalizedStart + (2 * math.pi * 6) + targetAngle;
-
     setState(() {
       _isSpinning = true;
-      _wonItem = _wheelLabels[targetIndex];
     });
 
-    _animation = Tween<double>(
-      begin: normalizedStart,
-      end: totalRotation,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    try {
+      // 1. Get the result from server first
+      final response = await ApiService().startSpin();
+      
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data['data'];
+        final targetIndex = data['index'] as int;
+        final label = data['label'] as String;
 
-    await _controller.forward(from: 0);
+        // 2. Calculate rotation
+        final segmentAngle = (2 * math.pi) / _wheelLabels.length;
+        final normalizedStart = _rotation % (2 * math.pi);
+        final targetAngle = -(targetIndex * segmentAngle) - (segmentAngle / 2);
+        final totalRotation = normalizedStart + (2 * math.pi * 7) + targetAngle;
+
+        _wonItem = label;
+
+        _animation = Tween<double>(
+          begin: normalizedStart,
+          end: totalRotation,
+        ).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+        _controller.reset();
+        await _controller.forward();
+      } else {
+        throw Exception('Failed to get spin result');
+      }
+    } catch (e) {
+      setState(() {
+        _isSpinning = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rewards service unavailable. Please try later.')),
+        );
+      }
+    }
   }
 
   Future<void> _claimRewardAndShowDialog() async {

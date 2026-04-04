@@ -269,8 +269,17 @@ class ApiService {
     return await _dio.get('rewards');
   }
 
+  Future<Response> startSpin() async {
+    return await _dio.post('rewards/start-spin');
+  }
+
   Future<Response> claimSpinReward(String wonItem) async {
     return await _dio.post('rewards/claim-spin', data: {'wonItem': wonItem});
+  }
+
+  // --- DELIVERY / ORDERS ---
+  Future<Response> getDeliveries() async {
+    return await _dio.get('delivery/me');
   }
 
   // --- NOTIFICATIONS ---

@@ -97,6 +97,21 @@ class RewardController {
   }
 
   /**
+   * Determine the spin result before the wheel animation starts
+   */
+  async startSpin(req, res) {
+    try {
+      const result = await rewardService.generateSpinResult();
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to start spin', message: error.message });
+    }
+  }
+
+  /**
    * Claim a spin wheel reward
    */
   async claimSpinReward(req, res) {

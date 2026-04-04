@@ -70,7 +70,10 @@ class SupportScreen extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          _buildSupportTile('Live Chat', 'Average response time: 2 mins', Icons.chat_bubble_outline_rounded, const Color(0xFF16A34A)),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConciergeSupportScreen())),
+            child: _buildSupportTile('Live Chat', 'Average response time: 2 mins', Icons.chat_bubble_outline_rounded, const Color(0xFF16A34A)),
+          ),
           const SizedBox(height: 12),
           _buildSupportTile('Email Support', 'support@silvra.com', Icons.alternate_email_rounded, const Color(0xFF2563EB)),
           const SizedBox(height: 12),

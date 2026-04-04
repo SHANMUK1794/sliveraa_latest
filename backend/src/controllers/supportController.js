@@ -7,22 +7,38 @@ exports.getChatResponse = async (req, res) => {
 
     let response = "I'm Silvra's AI Assistant. How can I help you today?";
 
-    if (msg.includes('gold') && msg.includes('price')) {
+    // 1. Gold Price
+    if ((msg.includes('gold') || msg.includes('price')) && (msg.includes('rate') || msg.includes('what'))) {
       const prices = await priceService.getLatestPrices();
-      response = `Currently, 24K Gold is trading at ₹${prices.gold.price_per_gram.toLocaleString('en-IN')}/gm. It's a great time to start your accumulation journey!`;
-    } else if (msg.includes('silver') && msg.includes('price')) {
+      response = `The current live price for 24K Gold is ₹${prices.gold.price_per_gram.toLocaleString('en-IN')}/gm (excluding GST). Prices are updated every few minutes from international markets.`;
+    } 
+    // 2. Silver Price
+    else if ((msg.includes('silver') || msg.includes('price')) && (msg.includes('rate') || msg.includes('what'))) {
       const prices = await priceService.getLatestPrices();
-      response = `Fine Silver is currently priced at ₹${prices.silver.price_per_gram.toLocaleString('en-IN')}/gm. You can start investing with as little as ₹50.`;
-    } else if (msg.includes('withdraw') || msg.includes('bank')) {
-      response = "You can withdraw your funds to your primary bank account via the Portfolio screen. Usually, it takes 24-48 hours for the funds to reflect.";
-    } else if (msg.includes('kyc') || msg.includes('pan')) {
-      response = "KYC is required for transactions above ₹2 Lakhs. You can complete your Pan verification in the Profile section.";
-    } else if (msg.includes('savings') || msg.includes('plan')) {
-      response = "Our Digital Vault Savings Plan allows you to accumulate Gold/Silver daily, weekly, or monthly. We now offer 5-year projections at 14% P.A.!";
-    } else if (msg.includes('reward') || msg.includes('spin')) {
-      response = "You can win Gold, Aura Coins, and coupons by spinning the wheel in the Rewards section. Don't forget to check your Referral rewards too!";
-    } else {
-      response = "Thank you for reaching out! I've received your message: \"" + message + "\". Our concierge team will monitor this chat, but feel free to ask me about gold prices, savings plans, or withdrawals!";
+      response = `Fine Silver (99.9%) is currently trading at ₹${prices.silver.price_per_gram.toLocaleString('en-IN')}/gm. It's a great choice for long-term wealth accumulation!`;
+    } 
+    // 3. Physical Delivery
+    else if (msg.includes('delivery') || msg.includes('physical') || msg.includes('ship')) {
+      response = "You can request physical delivery of your vaulted gold or silver in the form of certified coins and bars (starting from 0.5g). Simply go to the 'Delivery' section in the app to place a request.";
+    } 
+    // 4. Withdrawals / Bank
+    else if (msg.includes('withdraw') || msg.includes('money') || msg.includes('bank') || msg.includes('cash')) {
+      response = "To withdraw, sell your holdings in the 'Portfolio' section and the funds will be credited to your linked primary bank account within 24-48 business hours.";
+    } 
+    // 5. Security / Trust
+    else if (msg.includes('safe') || msg.includes('vault') || msg.includes('secure') || msg.includes('trust')) {
+      response = "Your gold is 100% insured and stored in Grade-A secure bank vaults managed by regulated custodians like Brinks. We undergo regular audits to ensure your holdings are always backed 1:1.";
+    }
+    // 6. Rewards / Spin
+    else if (msg.includes('reward') || msg.includes('spin') || msg.includes('win') || msg.includes('point')) {
+      response = "Check out the Rewards Center! You can spin the wheel to win Gold, Silver, Aura Coins, or discount coupons. You also earn 'Aura Points' for every purchase you make.";
+    }
+    // 7. KYC / PAN
+    else if (msg.includes('kyc') || msg.includes('pan') || msg.includes('verify')) {
+      response = "KYC is a simple one-time process. You only need your PAN card. Go to Profile > KYC to complete it using our secure DigiLocker integration.";
+    }
+    else {
+      response = "I'm not quite sure I understand that. Feel free to ask me about gold prices, how delivery works, or how to withdraw your funds!";
     }
 
     res.json({

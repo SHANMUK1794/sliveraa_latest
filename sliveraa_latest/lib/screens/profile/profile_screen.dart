@@ -15,6 +15,7 @@ import '../onbording/onboarding_screen.dart';
 import '../history/history_screen.dart';
 import '../../core/api_service.dart';
 import '../history/delivery_tracking_screen.dart';
+import '../history/orders_screen.dart';
 import 'security_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -64,7 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.inventory_2_rounded,
               title: 'Your Orders',
               subtitle: 'View your investment history',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryScreen(initialFilter: 'Gold'))),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OrdersScreen())),
             ),
             _buildProfileCard(
               icon: Icons.location_on_rounded,

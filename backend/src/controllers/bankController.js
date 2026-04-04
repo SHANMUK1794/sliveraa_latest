@@ -9,7 +9,10 @@ class BankController {
     const { bankName, accountNumber, ifsc, accountHolder } = req.body;
 
     if (!bankName || !accountNumber || !ifsc || !accountHolder) {
-      return res.status(400).json({ error: 'All bank fields are required' });
+      return res.status(400).json({ 
+        error: 'Validation failed', 
+        message: 'All bank fields (Name, Account Number, IFSC, Holder) are required' 
+      });
     }
 
     try {
@@ -19,18 +22,21 @@ class BankController {
       const bankAccount = await prisma.bankAccount.create({
         data: {
           userId,
-          bankName,
-          accountNumber,
-          ifsc,
-          accountHolder,
+          bankName: bankName.trim(),
+          accountNumber: accountNumber.trim(),
+          ifsc: ifsc.trim().toUpperCase(),
+          accountHolder: accountHolder.trim(),
           isPrimary: count === 0 // Make primary if it's the first one
         }
       });
 
       res.status(201).json(bankAccount);
     } catch (error) {
-      console.error('Add Bank Account Error:', error);
-      res.status(500).json({ error: 'Failed to add bank account' });
+      console.error('Add Bank Account Error Details:', error);
+      res.status(500).json({ 
+        error: 'Database Error', 
+        message: error.message || 'Failed to add bank account' 
+      });
     }
   }
 

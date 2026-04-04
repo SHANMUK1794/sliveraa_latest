@@ -31,6 +31,38 @@ class BankAccount {
   }
 }
 
+class DeliveryRequest {
+  final String id;
+  final String metalType;
+  final double weight;
+  final String status;
+  final String? trackingId;
+  final DateTime createdAt;
+  final Map<String, dynamic>? address;
+
+  DeliveryRequest({
+    required this.id,
+    required this.metalType,
+    required this.weight,
+    required this.status,
+    this.trackingId,
+    required this.createdAt,
+    this.address,
+  });
+
+  factory DeliveryRequest.fromJson(Map<String, dynamic> json) {
+    return DeliveryRequest(
+      id: json['id'] ?? '',
+      metalType: json['metalType'] ?? 'GOLD',
+      weight: double.tryParse(json['weight']?.toString() ?? '0') ?? 0.0,
+      status: json['status'] ?? 'PENDING',
+      trackingId: json['trackingId'],
+      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      address: json['address'],
+    );
+  }
+}
+
 class AppState extends ChangeNotifier {
   // Singleton Pattern
   static final AppState _instance = AppState._internal();
@@ -104,6 +136,7 @@ class AppState extends ChangeNotifier {
   // Addresses & Bank Accounts
   List<String> addresses = [];
   List<BankAccount> bankAccounts = [];
+  List<DeliveryRequest> deliveries = [];
 
   // Settings
   Map<String, bool> notificationSettings = {
@@ -252,5 +285,18 @@ class AppState extends ChangeNotifier {
   Future<void> refreshStatus() async {
     // This is typically called from KycScreen or DigiLockerWebView
     // Implementation can be added here once ApiService().getUserProfile() is verified
+  }
+
+  Future<void> fetchDeliveries() async {
+    try {
+      final response = await ApiService().getDeliveries();
+      if (response.statusCode == 200 && response.data != null) {
+        final List list = response.data['deliveries'] ?? [];
+        deliveries = list.map((e) => DeliveryRequest.fromJson(e)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching deliveries: $e');
+    }
   }
 }

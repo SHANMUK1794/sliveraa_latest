@@ -17,18 +17,18 @@ class _ConciergeSupportScreenState extends State<ConciergeSupportScreen> {
   final List<Map<String, dynamic>> _messages = [
     {
       'isMe': false,
-      'text': 'How may I help you today? I am here to assist you with your gift card queries and online orders.',
-      'time': '9:18 PM',
+      'text': 'Hi, I\'m your Silvra AI Concierge. How can I help you today with your Gold or Silver investments?',
+      'time': DateFormat('hh:mm a').format(DateTime.now().subtract(const Duration(minutes: 5))),
     },
     {
       'isMe': true,
-      'text': 'I have concerns related to the gift card balance.',
-      'time': '9:20 PM',
+      'text': 'I wanted to know more about physical delivery.',
+      'time': DateFormat('hh:mm a').format(DateTime.now().subtract(const Duration(minutes: 3))),
     },
     {
       'isMe': false,
-      'text': 'I can certainly help you check that. Please provide the 16-digit card number found on the back of your card or in your digital confirmation email.',
-      'time': '9:21 PM',
+      'text': 'Certainly! You can request physical delivery of any gold or silver in your vault. We deliver certified coins and bars starting from 0.5g.',
+      'time': DateFormat('hh:mm a').format(DateTime.now().subtract(const Duration(minutes: 1))),
     },
   ];
 
@@ -288,9 +288,10 @@ class _ConciergeSupportScreenState extends State<ConciergeSupportScreen> {
     if (_messages.length > 3) return const SizedBox.shrink();
 
     final actions = [
-      'Check balance now',
-      'Where do I get the PIN from?',
-      'Money got deducted but gift card not issued?',
+      'What is the current gold price?',
+      'How do I withdraw my savings?',
+      'Tell me about the rewards wheel.',
+      'How safe is my gold vault?',
     ];
 
     return Container(

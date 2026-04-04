@@ -147,6 +147,26 @@ class DeliveryController {
       res.status(500).json({ error: error.message || 'Internal Server Error' });
     }
   }
+
+  /**
+   * Get all user delivery requests (Orders)
+   */
+  async getDeliveries(req, res) {
+    try {
+      const { userId } = req.user;
+      const deliveries = await prisma.deliveryRequest.findMany({
+        where: { userId },
+        include: {
+          address: true
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+      res.json({ success: true, deliveries });
+    } catch (error) {
+      console.error('Fetch Deliveries Error:', error.message);
+      res.status(500).json({ error: 'Failed to fetch orders' });
+    }
+  }
 }
 
 module.exports = new DeliveryController();

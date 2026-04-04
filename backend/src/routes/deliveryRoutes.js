@@ -9,5 +9,6 @@ router.use(authMiddleware);
 router.post('/addresses', deliveryController.addAddress);
 router.get('/addresses', deliveryController.getAddresses);
 router.post('/request', checkKyc, deliveryController.requestDelivery);
+router.get('/me', deliveryController.getDeliveries);
 
 module.exports = router;
