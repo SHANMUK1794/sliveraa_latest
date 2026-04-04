@@ -153,6 +153,32 @@ class RewardService {
       throw error;
     }
   }
+
+  /**
+   * Credit purchase rewards (Aura Points)
+   * @param {string} userId
+   * @param {number} amount - Purchase amount in INR
+   */
+  async creditPurchaseReward(userId, amount) {
+    const REWARD_RATE = 0.05; // 5% of amount as points
+    const points = Math.floor(amount * REWARD_RATE);
+
+    if (points <= 0) return null;
+
+    try {
+      return await prisma.reward.create({
+        data: {
+          userId,
+          points,
+          description: `Purchase Reward (5% of ₹${amount})`,
+          type: 'PURCHASE'
+        }
+      });
+    } catch (error) {
+      console.error('RewardService Error (Purchase):', error.message);
+      return null;
+    }
+  }
 }
 
 module.exports = new RewardService();

@@ -34,17 +34,18 @@ class TransactionDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isBuy = transaction['type'] == 'BUY';
     final String assetType = transaction['assetType'] ?? 'GOLD';
-    double amount = transaction['amount'] ?? 0.0;
+    final double amount = (transaction['amount'] ?? 0.0).toDouble();
+    final double pricePerGram = (transaction['pricePerUnit'] ?? (assetType == 'GOLD' ? 7600.0 : 90.0)).toDouble();
+    final double weight = (transaction['weight'] ?? (amount / pricePerGram)).toDouble();
     
-    // Derived dummy data for display purposes
-    String orderId = 'SILV${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
-    String paymentMethod = 'Google Pay UPI';
+    // Real data from transaction
+    String orderId = transaction['id']?.toString().toUpperCase().substring(0, 8) ?? 'N/A';
+    String paymentMethod = transaction['type'] == 'WITHDRAWAL' ? 'Bank Transfer' : 'Razorpay/UPI';
     
-    double simulatedPricePerGram = assetType == 'GOLD' ? 7600.0 : 90.0;
-    double quantity = amount / simulatedPricePerGram;
-    double baseAmount = amount;
-    double gst = baseAmount * 0.03;
-    double totalAmount = baseAmount + gst;
+    double quantity = weight;
+    double totalAmount = amount;
+    double baseAmount = totalAmount / 1.03; // Reverse GST calculation if not stored separately
+    double gst = totalAmount - baseAmount;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -72,7 +73,7 @@ class TransactionDetailsScreen extends StatelessWidget {
           children: [
             _buildTopCard(assetType, transaction['type'] ?? 'BUY', amount, transaction['createdAt']),
             const SizedBox(height: 16),
-            _buildOrderInformationCard(orderId, paymentMethod, quantity, simulatedPricePerGram, baseAmount, gst, totalAmount),
+            _buildOrderInformationCard(orderId, paymentMethod, quantity, pricePerGram, baseAmount, gst, totalAmount, transaction['type']),
             const SizedBox(height: 16),
             _buildTimelineCard(transaction['createdAt']),
             const SizedBox(height: 24),
@@ -181,7 +182,7 @@ class TransactionDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderInformationCard(String orderId, String paymentMethod, double quantity, double pricePerGram, double baseAmount, double gst, double totalAmount) {
+  Widget _buildOrderInformationCard(String orderId, String paymentMethod, double quantity, double pricePerGram, double baseAmount, double gst, double totalAmount, String? type) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -200,14 +201,17 @@ class TransactionDetailsScreen extends StatelessWidget {
               color: const Color(0xFF1E293B),
             ),
           ),
-          const SizedBox(height: 20),
-          _buildInfoRow('Order ID', orderId, isCopy: true),
+          _buildInfoRow('Type', type ?? 'Transaction'),
+          const SizedBox(height: 16),
+          _buildInfoRow('Order ID', '#$orderId', isCopy: true),
           const SizedBox(height: 16),
           _buildInfoRow('Payment method', paymentMethod, isBoldValue: true),
           const SizedBox(height: 16),
-          _buildInfoRow('Quantity', '${quantity.toStringAsFixed(4)} g', isBoldValue: true),
-          const SizedBox(height: 16),
-          _buildInfoRow('Price per gram', '₹${NumberFormat.currency(locale: 'en_IN', symbol: '', decimalDigits: 2).format(pricePerGram)}', isBoldValue: true),
+          if (type != 'WITHDRAWAL') ...[
+            _buildInfoRow('Quantity', '${quantity.toStringAsFixed(4)} g', isBoldValue: true),
+            const SizedBox(height: 16),
+            _buildInfoRow('Price per gram', '₹${NumberFormat.currency(locale: 'en_IN', symbol: '', decimalDigits: 2).format(pricePerGram)}', isBoldValue: true),
+          ],
           
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 20),

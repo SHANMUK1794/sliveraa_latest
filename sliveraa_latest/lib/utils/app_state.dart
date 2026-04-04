@@ -3,19 +3,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api_service.dart';
 
 class BankAccount {
-  String bankName;
-  String accountHolder;
-  String accountNumber;
-  String ifsc;
-  bool isPrimary;
+  final String id;
+  final String bankName;
+  final String accountHolder;
+  final String accountNumber;
+  final String ifsc;
+  final bool isPrimary;
 
   BankAccount({
+    required this.id,
     required this.bankName,
     required this.accountHolder,
     required this.accountNumber,
     required this.ifsc,
     this.isPrimary = false,
   });
+
+  factory BankAccount.fromJson(Map<String, dynamic> json) {
+    return BankAccount(
+      id: json['id'] ?? '',
+      bankName: json['bankName'] ?? '',
+      accountHolder: json['accountHolder'] ?? '',
+      accountNumber: json['accountNumber'] ?? '',
+      ifsc: json['ifsc'] ?? '',
+      isPrimary: json['isPrimary'] ?? false,
+    );
+  }
 }
 
 class AppState extends ChangeNotifier {
@@ -163,8 +176,31 @@ class AppState extends ChangeNotifier {
   }
 
   void updateRecentActivity(List<dynamic> data) {
-    recentActivity = data.map((t) => t as Map<String, dynamic>).toList();
+    recentActivity = data.map((t) {
+      final map = t as Map<String, dynamic>;
+      // Map backend 'metalType' to frontend 'assetType' if necessary
+      if (map.containsKey('metalType') && !map.containsKey('assetType')) {
+        map['assetType'] = map['metalType'];
+      }
+      if (map.containsKey('weight') && !map.containsKey('grams')) {
+        map['grams'] = map['weight'];
+      }
+      return map;
+    }).toList();
     notifyListeners();
+  }
+
+  Future<void> fetchBankAccounts() async {
+    try {
+      final response = await ApiService().getBankAccounts();
+      if (response.statusCode == 200) {
+        final List data = response.data;
+        bankAccounts = data.map((b) => BankAccount.fromJson(b)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching bank accounts: $e');
+    }
   }
 
   void updateTransactions(List<dynamic> data) => updateRecentActivity(data);

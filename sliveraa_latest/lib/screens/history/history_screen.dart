@@ -16,6 +16,27 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   String selectedFilter = 'All';
   String searchQuery = '';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshTransactions();
+  }
+
+  Future<void> _refreshTransactions() async {
+    setState(() => isLoading = true);
+    try {
+      final response = await ApiService().getTransactions();
+      if (response.statusCode == 200) {
+        AppState().updateTransactions(response.data);
+      }
+    } catch (e) {
+      debugPrint('Error fetching transactions: $e');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _allTransactions => AppState().transactions;
 
@@ -66,8 +87,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _buildHeader(),
             _buildSearchBar(),
             _buildFilters(),
-            Expanded(
-              child: ListView(
+            isLoading 
+              ? const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.primaryBrownGold)))
+              : Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshTransactions,
+                    color: AppColors.primaryBrownGold,
+                    child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   ..._buildGroupedList(),
@@ -227,31 +253,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
     bool isBuy = t['type'] == 'BUY';
     String assetType = t['assetType'] ?? 'GOLD';
     
-    // Default styling
+    // Default styling from backend model
     IconData icon = Icons.shopping_bag_outlined;
     Color iconColor = const Color(0xFFD97706);
     Color bgColor = const Color(0xFFFEF3C7);
     String title = assetType == 'GOLD' ? 'Gold' : 'Silver';
-    String status = t['status'] ?? (isBuy ? 'Debited' : 'Credited');
+    String status = isBuy ? 'Purchased' : 'Sold';
 
-    if (t['type'] == 'WITHDRAW') {
-      title = 'Withdraw';
-      icon = Icons.payments_outlined;
+    if (t['type'] == 'WITHDRAWAL') {
+      title = 'Withdrawal';
+      icon = Icons.account_balance_wallet_outlined;
       iconColor = const Color(0xFF16A34A);
       bgColor = const Color(0xFFDCFCE7);
-      status = 'Credited';
+      status = 'Bank Transfer';
     } else if (assetType == 'SILVER') {
-      icon = Icons.directions_car_outlined;
+      icon = Icons.toll_outlined;
       iconColor = const Color(0xFF94A3B8);
       bgColor = const Color(0xFFF1F5F9);
-      status = 'Silver';
-    } else {
-      title = 'Gold';
-      icon = Icons.shopping_bag_outlined;
-      iconColor = const Color(0xFFD2B494);
+    } else if (assetType == 'GOLD') {
+      icon = Icons.monetization_on_outlined;
+      iconColor = AppColors.primaryBrownGold;
       bgColor = const Color(0xFFFAF5ED);
-      status = 'Debited';
-      if (!isBuy) status = 'Credited';
     }
 
     String subText = '${_formatTime(t['createdAt'])}';

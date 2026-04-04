@@ -63,6 +63,7 @@ model User {
   savingsPlans  SavingsPlan[]
   rewards       Reward[]
   bankAccounts  BankAccount[]
+  notifications Notification[]
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -204,4 +205,15 @@ model MetalPrice {
   source          String    @default("goldapi.io")
   
   updatedAt       DateTime  @updatedAt
+}
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  title     String
+  message   String
+  type      String   // TRANSACTION, REWARD, SYSTEM
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

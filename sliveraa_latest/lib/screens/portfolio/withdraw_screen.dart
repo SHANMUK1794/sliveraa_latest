@@ -26,6 +26,11 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     super.initState();
     isGold = widget.isGoldInitial;
     _amountController.text = '2000';
+    _fetchBanks();
+  }
+
+  Future<void> _fetchBanks() async {
+    await AppState().fetchBankAccounts();
   }
 
   @override
@@ -293,21 +298,21 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEF9C3),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '1.24 GM GOLD',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF854D0E),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF9C3),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${currentBalance.toStringAsFixed(4)} GM ${isGold ? 'GOLD' : 'SILVER'}',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF854D0E),
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(width: 12),
                   Text(
                     'Live price applied',
@@ -380,7 +385,14 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                       hintText: '0',
                       hintStyle: GoogleFonts.manrope(color: const Color(0xFFCBD5E1)),
                     ),
-                    onChanged: (val) => setState(() {}),
+                    onChanged: (val) {
+                      final amount = double.tryParse(val.replaceAll(',', '')) ?? 0;
+                      if (amount > withdrawableAmount) {
+                        _amountController.text = withdrawableAmount.toInt().toString();
+                        _amountController.selection = TextSelection.fromPosition(TextPosition(offset: _amountController.text.length));
+                      }
+                      setState(() {});
+                    },
                   ),
                 ),
                 GestureDetector(
@@ -540,6 +552,13 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
   }
 
   Widget _buildBankCard() {
+    final primaryBank = AppState().bankAccounts.firstWhere(
+      (b) => b.isPrimary,
+      orElse: () => AppState().bankAccounts.isNotEmpty 
+          ? AppState().bankAccounts.first 
+          : BankAccount(id: '', bankName: 'No Bank Account', accountHolder: '', accountNumber: 'Click to add', ifsc: ''),
+    );
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -548,64 +567,80 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: _showBankSelection,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.account_balance_rounded, color: Color(0xFF64748B), size: 24),
             ),
-            child: const Icon(Icons.account_balance_rounded, color: Color(0xFF64748B), size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'HDFC Bank •••• 4821',
-                  style: GoogleFonts.manrope(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1E293B),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${primaryBank.bankName} ${primaryBank.accountNumber.length > 4 ? "•••• " + primaryBank.accountNumber.substring(primaryBank.accountNumber.length - 4) : primaryBank.accountNumber}',
+                    style: GoogleFonts.manrope(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1E293B),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF22C55E),
-                        shape: BoxShape.circle,
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: primaryBank.id.isNotEmpty ? const Color(0xFF22C55E) : Colors.red,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Instant transfer enabled',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: const Color(0xFF94A3B8),
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(width: 6),
+                      Text(
+                        primaryBank.id.isNotEmpty ? 'Instant transfer enabled' : 'Add a bank account to withdraw',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: const Color(0xFF94A3B8),
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Text(
-            'Change',
-            style: GoogleFonts.manrope(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFFB08C65),
+            Text(
+              primaryBank.id.isNotEmpty ? 'Change' : 'Add',
+              style: GoogleFonts.manrope(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFB08C65),
+              ),
             ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFFB08C65), size: 20),
-        ],
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFFB08C65), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBankSelection() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _BankSelectionSheet(
+        onAccountSelected: () {
+          setState(() {});
+        },
       ),
     );
   }
@@ -657,49 +692,166 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
 
   void _showSuccessDialog() {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(color: Color(0xFFF0FDF4), shape: BoxShape.circle),
-              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 48),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Withdrawal Initiated',
-              style: GoogleFonts.manrope(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF111827)),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Your request for withdrawal of ₹${_amountController.text} has been received. Funds will be credited to your bank account within 2-3 business days.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14, height: 1.5),
-            ),
+... (rest of the code)
+  }
+}
+
+class _BankSelectionSheet extends StatefulWidget {
+  final VoidCallback onAccountSelected;
+  const _BankSelectionSheet({required this.onAccountSelected});
+
+  @override
+  State<_BankSelectionSheet> createState() => _BankSelectionSheetState();
+}
+
+class _BankSelectionSheetState extends State<_BankSelectionSheet> {
+  bool isAdding = false;
+  final _bankNameController = TextEditingController();
+  final _holderController = TextEditingController();
+  final _accNoController = TextEditingController();
+  final _ifscController = TextEditingController();
+  bool isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.only(
+        top: 24,
+        left: 24,
+        right: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isAdding ? 'Add Bank Account' : 'Select Bank Account',
+                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          if (!isAdding) ...[
+            ...AppState().bankAccounts.map((b) => _buildBankItem(b)),
+            const SizedBox(height: 16),
+            _buildAddButton(),
+          ] else ...[
+            _buildInputField('Bank Name', _bankNameController),
+            _buildInputField('Account Holder Name', _holderController),
+            _buildInputField('Account Number', _accNoController, isNumeric: true),
+            _buildInputField('IFSC Code', _ifscController),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
+                onPressed: isLoading ? null : _saveBank,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF111827),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  backgroundColor: AppColors.primaryBrownGold,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: Text('Done', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+                child: isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text('Save Bank Account', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white)),
               ),
             ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBankItem(BankAccount b) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: b.isPrimary ? const Color(0xFFFDFBF7) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: b.isPrimary ? AppColors.primaryBrownGold : const Color(0xFFE2E8F0)),
+      ),
+      child: ListTile(
+        onTap: () async {
+          await ApiService().setPrimaryBank(b.id);
+          await AppState().fetchBankAccounts();
+          widget.onAccountSelected();
+          Navigator.pop(context);
+        },
+        leading: const CircleAvatar(
+          backgroundColor: Color(0xFFF1F5F9),
+          child: Icon(Icons.account_balance_rounded, color: Color(0xFF64748B), size: 20),
+        ),
+        title: Text(b.bankName, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        subtitle: Text('•••• ${b.accountNumber.substring(b.accountNumber.length - 4)}', style: GoogleFonts.inter(fontSize: 12)),
+        trailing: b.isPrimary ? Icon(Icons.check_circle_rounded, color: AppColors.primaryBrownGold) : null,
+      ),
+    );
+  }
+
+  Widget _buildAddButton() {
+    return InkWell(
+      onTap: () => setState(() => isAdding = true),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFFE2E8F0), style: BorderStyle.solid),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF64748B)),
+            const SizedBox(width: 8),
+            Text('Add Another Account', style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildInputField(String label, TextEditingController controller, {bool isNumeric = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextField(
+        controller: controller,
+        keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: GoogleFonts.inter(fontSize: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveBank() async {
+    setState(() => isLoading = true);
+    try {
+      await ApiService().addBankAccount({
+        'bankName': _bankNameController.text,
+        'accountHolder': _holderController.text,
+        'accountNumber': _accNoController.text,
+        'ifsc': _ifscController.text,
+      });
+      await AppState().fetchBankAccounts();
+      widget.onAccountSelected();
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 }

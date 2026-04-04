@@ -14,6 +14,7 @@ import '../../widgets/custom_bottom_navbar.dart';
 import '../../theme/app_colors.dart';
 import '../profile/profile_screen.dart';
 import '../../core/api_service.dart';
+import '../history/history_screen.dart';
 
 class PortfolioScreen extends StatefulWidget {
   final double goldBalance;
@@ -698,13 +699,16 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           }),
         const SizedBox(height: 24),
         Center(
-          child: Text(
-            'VIEW ALL TRANSACTIONS',
-            style: GoogleFonts.inter(
-              color: AppColors.primaryBrownGold,
-              fontSize: 12,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
+          child: GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen())),
+            child: Text(
+              'VIEW ALL TRANSACTIONS',
+              style: GoogleFonts.inter(
+                color: AppColors.primaryBrownGold,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ),

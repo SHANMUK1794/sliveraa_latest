@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const priceService = require('../services/priceService');
+const notificationService = require('../services/notificationService');
 
 class TransactionController {
   /**
@@ -60,7 +61,9 @@ class TransactionController {
           }
         });
 
-        return { transRecord, newBalance: metalType === 'GOLD' ? updatedUser.goldBalance : updatedUser.silverBalance };
+        await notificationService.notify(userId, 'Withdrawal Processed', `₹${amount} has been debited from your ${metalType} balance.`, 'TRANSACTION');
+
+        return { newBalance: metalType === 'GOLD' ? updatedUser.goldBalance : updatedUser.silverBalance };
       });
 
       res.json({

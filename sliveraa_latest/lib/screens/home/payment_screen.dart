@@ -48,7 +48,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _startPayment() {
     final state = context.read<AppState>();
     var options = {
-      'key': 'rzp_test_YOUR_KEY_HERE', // User should replace this in production
+      'key': 'rzp_test_MOCK_KEY', // Triggers Mock Mode in backend
       'amount': (widget.amount * 100).toInt(), // Amount in paise
       'name': 'Silvra',
       'order_id': widget.orderId, // Real order ID from backend

@@ -239,7 +239,23 @@ class ApiService {
       'clientId': clientId,
       'otp': otp,
     });
+    // Bank Accounts
+  Future<Response> getBankAccounts() async {
+    return await _dio.get('/api/banks');
   }
+
+  Future<Response> addBankAccount(Map<String, dynamic> data) async {
+    return await _dio.post('/api/banks', data: data);
+  }
+
+  Future<Response> setPrimaryBank(String id) async {
+    return await _dio.patch('/api/banks/$id/primary');
+  }
+
+  Future<Response> deleteBankAccount(String id) async {
+    return await _dio.delete('/api/banks/$id');
+  }
+}
 
   Future<Response> finalizeDigiLocker(String clientId) async {
     return await _dio.post('kyc/digilocker/finalize', data: {
@@ -253,5 +269,14 @@ class ApiService {
 
   Future<Response> claimSpinReward(String wonItem) async {
     return await _dio.post('/rewards/claim-spin', data: {'wonItem': wonItem});
+  }
+
+  // --- NOTIFICATIONS ---
+  Future<Response> getNotifications() async {
+    return await _dio.get('notifications');
+  }
+
+  Future<Response> markNotificationAsRead(String id) async {
+    return await _dio.patch('notifications/$id/read');
   }
 }

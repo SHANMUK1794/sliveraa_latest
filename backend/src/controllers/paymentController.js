@@ -1,5 +1,7 @@
 const paymentService = require('../services/paymentService');
 const priceService = require('../services/priceService');
+const rewardService = require('../services/rewardService');
+const notificationService = require('../services/notificationService');
 const prisma = require('../models/prisma');
 const { createOrderSchema, verifyPaymentSchema } = require('../utils/schemas');
 
@@ -113,18 +115,23 @@ class PaymentController {
               where: { id: userId },
               data: { walletBalance: { increment: transaction.amount } }
             });
+            await notificationService.notify(userId, 'Deposit Successful', `₹${transaction.amount} has been added to your wallet.`, 'TRANSACTION');
           } else if (transaction.type === 'BUY') {
             if (transaction.metalType === 'GOLD') {
               await tx.user.update({
                 where: { id: userId },
                 data: { goldBalance: { increment: transaction.weight || 0 } }
               });
+              await notificationService.notify(userId, 'Gold Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm 24K Gold added to your vault.`, 'TRANSACTION');
             } else if (transaction.metalType === 'SILVER') {
               await tx.user.update({
                 where: { id: userId },
                 data: { silverBalance: { increment: transaction.weight || 0 } }
               });
+              await notificationService.notify(userId, 'Silver Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm Fine Silver added to your vault.`, 'TRANSACTION');
             }
+            // Award Rewards
+            await rewardService.creditPurchaseReward(userId, transaction.amount);
           }
         });
 

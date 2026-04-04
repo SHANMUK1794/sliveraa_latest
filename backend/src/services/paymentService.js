@@ -17,7 +17,7 @@ class PaymentService {
   }
 
   get isAvailable() {
-    return this.razorpay !== null;
+    return this.razorpay !== null || process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_MOCK');
   }
 
   /**
@@ -28,6 +28,18 @@ class PaymentService {
    * @returns {Promise<any>}
    */
   async createOrder(amount, currency = 'INR', receipt = 'receipt_' + Date.now()) {
+    // Check if we should use Mock Mode
+    if (process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_MOCK')) {
+      console.log('PaymentService: Using Mock Mode for Order Creation');
+      return {
+        id: 'order_mock_' + Math.random().toString(36).substring(7),
+        amount,
+        currency,
+        receipt,
+        status: 'created'
+      };
+    }
+
     if (!this.razorpay) {
       throw new Error('Payment service is not configured');
     }
@@ -52,6 +64,12 @@ class PaymentService {
    * @returns {boolean}
    */
   verifySignature(orderId, paymentId, signature) {
+    // Check if we should use Mock Mode
+    if (orderId.startsWith('order_mock_')) {
+      console.log('PaymentService: Using Mock Mode for Signature Verification');
+      return true;
+    }
+
     if (!this.razorpay) {
       throw new Error('Payment service is not configured');
     }
