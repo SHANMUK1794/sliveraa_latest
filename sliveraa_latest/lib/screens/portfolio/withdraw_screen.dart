@@ -556,7 +556,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
       (b) => b.isPrimary,
       orElse: () => AppState().bankAccounts.isNotEmpty 
           ? AppState().bankAccounts.first 
-          : BankAccount(id: '', bankName: 'No Bank Account', accountHolder: '', accountNumber: 'Click to add', ifsc: ''),
+          : BankAccount(id: '', bankName: 'No Bank Account', accountHolder: '', accountNumber: '', ifsc: ''),
     );
 
     return Container(
@@ -585,7 +585,11 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${primaryBank.bankName} ${primaryBank.accountNumber.length > 4 ? "•••• " + primaryBank.accountNumber.substring(primaryBank.accountNumber.length - 4) : primaryBank.accountNumber}',
+                    primaryBank.id.isNotEmpty
+                      ? '${primaryBank.bankName} •••• ${primaryBank.accountNumber.substring(primaryBank.accountNumber.length - 4)}'
+                      : 'No Bank account added',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.manrope(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -605,7 +609,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        primaryBank.id.isNotEmpty ? 'Instant transfer enabled' : 'Add a bank account to withdraw',
+                        primaryBank.id.isNotEmpty ? 'Instant transfer enabled' : 'Add account to withdraw',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: const Color(0xFF94A3B8),
@@ -617,6 +621,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               primaryBank.id.isNotEmpty ? 'Change' : 'Add',
               style: GoogleFonts.manrope(
@@ -692,7 +697,52 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
 
   void _showSuccessDialog() {
     showDialog(
-... (rest of the code)
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(color: Color(0xFFECFDF5), shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 48),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Withdrawal Successful',
+              style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF1F2937)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your request for ₹${_amountController.text} has been initiated. Funds will be credited to your primary bank account shortly.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF6B7280), height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog
+                  Navigator.pop(context); // Go back from Withdraw screen
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F2937),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 0,
+                ),
+                child: Text('Back to Portfolio', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white)),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -725,50 +775,66 @@ class _BankSelectionSheetState extends State<_BankSelectionSheet> {
         right: 24,
         bottom: MediaQuery.of(context).viewInsets.bottom + 32,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isAdding ? 'Add Bank Account' : 'Select Bank Account',
-                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
-              ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isAdding ? 'Add Bank Account' : 'Select Bank Account',
+                  style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            if (!isAdding) ...[
+              if (AppState().bankAccounts.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: [
+                        Icon(Icons.account_balance_rounded, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 16),
+                        Text('No bank accounts added yet', style: GoogleFonts.inter(color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...AppState().bankAccounts.map((b) => _buildBankItem(b)),
+              const SizedBox(height: 16),
+              _buildAddButton(),
+            ] else ...[
+              _buildInputField('Bank Name', _bankNameController),
+              _buildInputField('Account Holder Name', _holderController),
+              _buildInputField('Account Number', _accNoController, isNumeric: true),
+              _buildInputField('IFSC Code', _ifscController),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _saveBank,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBrownGold,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: isLoading 
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text('Save Bank Account', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 24),
-          if (!isAdding) ...[
-            ...AppState().bankAccounts.map((b) => _buildBankItem(b)),
-            const SizedBox(height: 16),
-            _buildAddButton(),
-          ] else ...[
-            _buildInputField('Bank Name', _bankNameController),
-            _buildInputField('Account Holder Name', _holderController),
-            _buildInputField('Account Number', _accNoController, isNumeric: true),
-            _buildInputField('IFSC Code', _ifscController),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : _saveBank,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBrownGold,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text('Save Bank Account', style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: Colors.white)),
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -793,7 +859,10 @@ class _BankSelectionSheetState extends State<_BankSelectionSheet> {
           child: Icon(Icons.account_balance_rounded, color: Color(0xFF64748B), size: 20),
         ),
         title: Text(b.bankName, style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        subtitle: Text('•••• ${b.accountNumber.substring(b.accountNumber.length - 4)}', style: GoogleFonts.inter(fontSize: 12)),
+        subtitle: Text(
+          '•••• ${b.accountNumber.length > 4 ? b.accountNumber.substring(b.accountNumber.length - 4) : b.accountNumber}', 
+          style: GoogleFonts.inter(fontSize: 12)
+        ),
         trailing: b.isPrimary ? Icon(Icons.check_circle_rounded, color: AppColors.primaryBrownGold) : null,
       ),
     );

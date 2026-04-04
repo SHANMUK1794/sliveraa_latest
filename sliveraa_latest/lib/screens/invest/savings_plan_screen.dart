@@ -25,8 +25,6 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
   double amount = 500;
   final List<double> quickAmounts = [50, 100, 200, 500];
   late TextEditingController _amountController;
-  String selectedDay = 'TUE';
-  int selectedDate = 15;
 
   @override
   void initState() {
@@ -52,13 +50,13 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
     
     if (frequency == 'Daily') {
       i = rAnnual / 365;
-      n = 365;
+      n = 365 * 5;
     } else if (frequency == 'Weekly') {
       i = rAnnual / 52;
-      n = 52;
+      n = 52 * 5;
     } else {
       i = rAnnual / 12;
-      n = 12;
+      n = 12 * 5;
     }
 
     // Standard Future Value of Annuity formula
@@ -125,9 +123,7 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
             _buildAmountCard(),
             const SizedBox(height: 32),
             _buildQuickAmountChips(themeColor),
-            const SizedBox(height: 32),
-            _buildFrequencySelectionOptions(themeColor),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             _buildProjectionCard(themeColor),
             const SizedBox(height: 48),
             _buildStartSavingButton(themeColor),
@@ -166,110 +162,6 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
         ),
       ],
     );
-  }
-
-  Widget _buildFrequencySelectionOptions(Color themeColor) {
-    if (frequency == 'Daily') return const SizedBox.shrink();
-
-    if (frequency == 'Weekly') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'SELECT INVESTMENT DAY',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF4B5563),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) {
-              bool isSelected = selectedDay == day;
-              return GestureDetector(
-                onTap: () => setState(() => selectedDay = day),
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: isSelected ? themeColor : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: isSelected ? themeColor : const Color(0xFFF1F5F9)),
-                    boxShadow: isSelected ? [BoxShadow(color: themeColor.withValues(alpha: 0.2), blurRadius: 4)] : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    day,
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                      color: isSelected ? Colors.white : const Color(0xFF1F2937),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      );
-    }
-
-    if (frequency == 'Monthly') {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            'SELECT MONTHLY DATE',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF4B5563),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: 28,
-            itemBuilder: (context, index) {
-              int date = index + 1;
-              bool isSelected = selectedDate == date;
-              return GestureDetector(
-                onTap: () => setState(() => selectedDate = date),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? themeColor : Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: isSelected ? themeColor : const Color(0xFFF1F5F9)),
-                    boxShadow: isSelected ? [BoxShadow(color: themeColor.withValues(alpha: 0.2), blurRadius: 4)] : null,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    date.toString(),
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
-                      color: isSelected ? Colors.white : const Color(0xFF1F2937),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 
   Widget _buildMetalToggle() {
@@ -501,7 +393,7 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ESTIMATED VALUE IN 1 YEAR (14% P.A.)',
+                  'ESTIMATED VALUE IN 5 YEARS (14% P.A.)',
                   style: GoogleFonts.inter(
                     color: const Color(0xFF9CA3AF),
                     fontSize: 10,

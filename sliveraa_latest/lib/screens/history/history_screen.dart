@@ -5,9 +5,11 @@ import '../../utils/app_state.dart';
 import 'package:intl/intl.dart';
 import '../profile/profile_screen.dart';
 import 'transaction_details_screen.dart';
+import '../../core/api_service.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final String? initialFilter;
+  const HistoryScreen({super.key, this.initialFilter});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -21,6 +23,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialFilter != null) {
+      selectedFilter = widget.initialFilter!;
+    }
     _refreshTransactions();
   }
 
@@ -94,15 +99,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     onRefresh: _refreshTransactions,
                     color: AppColors.primaryBrownGold,
                     child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  ..._buildGroupedList(),
-                  const SizedBox(height: 16),
-                  _buildMonthlySummary(),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        ..._buildGroupedList(),
+                        const SizedBox(height: 16),
+                        _buildMonthlySummary(),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
           ],
         ),
       ),
@@ -398,7 +404,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  double _calculateMonthlyTotal() {
+    final now = DateTime.now();
+    double total = 0;
+    for (var t in _allTransactions) {
+      try {
+        final dt = DateTime.parse(t['createdAt'].toString());
+        if (dt.month == now.month && dt.year == now.year && t['type'] == 'BUY') {
+          total += (t['amount'] as num).toDouble();
+        }
+      } catch (_) {}
+    }
+    return total;
+  }
+
   Widget _buildMonthlySummary() {
+    final monthlyTotal = _calculateMonthlyTotal();
+    final now = DateTime.now();
+    final monthName = DateFormat('MMM yyyy').format(now);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -438,7 +462,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(AppState().totalSavingsThisMonth > 0 ? AppState().totalSavingsThisMonth : 12450.00),
+                NumberFormat.currency(locale: 'en_IN', symbol: '₹', decimalDigits: 2).format(monthlyTotal),
                 style: GoogleFonts.manrope(
                   color: Colors.white,
                   fontSize: 32,
@@ -447,7 +471,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Total Expenses Oct 2023',
+                'Total Savings $monthName',
                 style: GoogleFonts.inter(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 12,

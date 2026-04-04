@@ -12,6 +12,7 @@ import 'support_screen.dart';
 import 'legal_screen.dart';
 import 'settings_detail_screens.dart';
 import '../onbording/onboarding_screen.dart';
+import '../history/history_screen.dart';
 import '../../core/api_service.dart';
 import '../history/delivery_tracking_screen.dart';
 import 'security_screen.dart';
@@ -62,8 +63,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildProfileCard(
               icon: Icons.inventory_2_rounded,
               title: 'Your Orders',
-              subtitle: 'Track and manage your deliveries',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DeliveryTrackingScreen())),
+              subtitle: 'View your investment history',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryScreen(initialFilter: 'Gold'))),
             ),
             _buildProfileCard(
               icon: Icons.location_on_rounded,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../core/api_service.dart';
 import '../../theme/app_colors.dart';
 
 class ConciergeSupportScreen extends StatefulWidget {
@@ -49,33 +51,51 @@ class _ConciergeSupportScreenState extends State<ConciergeSupportScreen> {
     });
   }
 
-  void _sendMessage(String text) {
+  Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
+    final userMessage = {
+      'isMe': true,
+      'text': text,
+      'time': DateFormat('hh:mm a').format(DateTime.now()),
+    };
+
     setState(() {
-      _messages.add({
-        'isMe': true,
-        'text': text,
-        'time': 'Just now',
-      });
+      _messages.add(userMessage);
       _messageController.clear();
     });
 
     _scrollToBottom();
 
-    // Simulate AI reply
-    Future.delayed(const Duration(seconds: 1), () {
+    try {
+      final response = await ApiService().sendChat(text);
+      if (response.statusCode == 200) {
+        final reply = response.data['reply'] ?? "I'm sorry, I couldn't process that.";
+        final time = response.data['timestamp'] ?? DateFormat('hh:mm a').format(DateTime.now());
+        
+        if (mounted) {
+          setState(() {
+            _messages.add({
+              'isMe': false,
+              'text': reply,
+              'time': time,
+            });
+          });
+          _scrollToBottom();
+        }
+      }
+    } catch (e) {
       if (mounted) {
         setState(() {
           _messages.add({
             'isMe': false,
-            'text': 'Thank you for reaching out. I am an automated assistant. Your message "$text" has been received and our team will get back to you shortly.',
-            'time': 'Just now',
+            'text': "I'm having trouble connecting to Silvra's support. Please check your network.",
+            'time': DateFormat('hh:mm a').format(DateTime.now()),
           });
         });
         _scrollToBottom();
       }
-    });
+    }
   }
 
   @override

@@ -14,6 +14,7 @@ const rewardRoutes = require('./src/routes/rewardRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const bankRoutes = require('./src/routes/bankRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
+const supportRoutes = require('./src/routes/supportRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,6 +37,7 @@ app.use('/api/rewards', rewardRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/banks', bankRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/support', supportRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

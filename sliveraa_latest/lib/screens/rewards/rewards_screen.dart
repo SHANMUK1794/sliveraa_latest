@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../core/api_service.dart';
 import '../../utils/app_state.dart';
 import '../../utils/extensions.dart';
+import 'package:intl/intl.dart';
 
 class RewardsScreen extends StatefulWidget {
   final bool hideBackButton;
@@ -394,8 +396,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                     ),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        _showInfoMessage('Reward history will be available here.'),
+                    onPressed: _showRewardHistorySheet,
                     style: TextButton.styleFrom(
                       backgroundColor: const Color(0xFF2C2217),
                       foregroundColor: Colors.white,
@@ -604,6 +605,15 @@ class _RewardsScreenState extends State<RewardsScreen>
       ],
     );
   }
+
+  void _showRewardHistorySheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _RewardHistorySheet(),
+    );
+  }
 }
 
 class _RewardItem extends StatelessWidget {
@@ -777,7 +787,7 @@ class _WheelPainter extends CustomPainter {
                 : const Color(0xFFD4B075),
           ),
         ),
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
       )..layout();
 
       final labelAngle = startAngle + (segmentAngle / 2);
@@ -905,6 +915,97 @@ class _CoinArtwork extends StatelessWidget {
                   : const Color(0xFFF7FAFB),
               height: 1,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RewardHistorySheet extends StatefulWidget {
+  @override
+  State<_RewardHistorySheet> createState() => _RewardHistorySheetState();
+}
+
+class _RewardHistorySheetState extends State<_RewardHistorySheet> {
+  bool isLoading = true;
+  List<dynamic> rewards = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRewards();
+  }
+
+  Future<void> _fetchRewards() async {
+    try {
+      final response = await ApiService().getRewards();
+      if (response.data['success'] == true) {
+        setState(() {
+          rewards = response.data['rewards'] ?? [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Reward History',
+                style: GoogleFonts.manrope(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBrownGold))
+                : rewards.isEmpty
+                    ? Center(child: Text('No rewards earned yet', style: GoogleFonts.inter(color: Colors.grey)))
+                    : ListView.builder(
+                        itemCount: rewards.length,
+                        itemBuilder: (context, index) {
+                          final r = rewards[index];
+                          final points = r['points'] ?? 0;
+                          final date = DateTime.parse(r['createdAt']);
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFFF7ECDF),
+                              child: Icon(
+                                r['type'] == 'REFERRAL' ? Icons.person_add_rounded : Icons.workspace_premium_rounded,
+                                color: const Color(0xFFD1AE86),
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(r['description'] ?? 'Reward', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14)),
+                            subtitle: Text(DateFormat('dd MMM yyyy, hh:mm a').format(date), style: GoogleFonts.inter(fontSize: 12)),
+                            trailing: Text(
+                              '+$points pts',
+                              style: GoogleFonts.manrope(fontWeight: FontWeight.w800, color: const Color(0xFF059669)),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

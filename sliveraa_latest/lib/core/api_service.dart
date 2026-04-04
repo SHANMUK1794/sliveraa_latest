@@ -239,36 +239,38 @@ class ApiService {
       'clientId': clientId,
       'otp': otp,
     });
-    // Bank Accounts
+  }
+
+  // --- BANK ACCOUNTS ---
   Future<Response> getBankAccounts() async {
-    return await _dio.get('/api/banks');
+    return await _dio.get('banks');
   }
 
   Future<Response> addBankAccount(Map<String, dynamic> data) async {
-    return await _dio.post('/api/banks', data: data);
+    return await _dio.post('banks', data: data);
   }
 
   Future<Response> setPrimaryBank(String id) async {
-    return await _dio.patch('/api/banks/$id/primary');
+    return await _dio.patch('banks/$id/primary');
   }
 
   Future<Response> deleteBankAccount(String id) async {
-    return await _dio.delete('/api/banks/$id');
+    return await _dio.delete('banks/$id');
   }
-}
 
   Future<Response> finalizeDigiLocker(String clientId) async {
     return await _dio.post('kyc/digilocker/finalize', data: {
       'clientId': clientId,
     });
   }
+
   // --- REWARDS ---
   Future<Response> getRewards() async {
-    return await _dio.get('/rewards');
+    return await _dio.get('rewards');
   }
 
   Future<Response> claimSpinReward(String wonItem) async {
-    return await _dio.post('/rewards/claim-spin', data: {'wonItem': wonItem});
+    return await _dio.post('rewards/claim-spin', data: {'wonItem': wonItem});
   }
 
   // --- NOTIFICATIONS ---
@@ -278,5 +280,14 @@ class ApiService {
 
   Future<Response> markNotificationAsRead(String id) async {
     return await _dio.patch('notifications/$id/read');
+  }
+
+
+
+  // --- SUPPORT / CHAT ---
+  Future<Response> sendChat(String message) async {
+    return await _dio.post('support/chat', data: {
+      'message': message,
+    });
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_state.dart';
 import '../../theme/app_colors.dart';
+import '../../core/api_service.dart';
 
 class BankAccountsScreen extends StatefulWidget {
   const BankAccountsScreen({super.key});
@@ -358,29 +359,34 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           if (_accountNumberController.text.isNotEmpty && _ifscController.text.isNotEmpty) {
-            setState(() {
-              if (AppState().bankAccounts.isEmpty) {
-                AppState().bankAccounts.add(BankAccount(
-                  bankName: _bankNameController.text,
-                  accountHolder: _holderNameController.text,
-                  accountNumber: _accountNumberController.text,
-                  ifsc: _ifscController.text,
-                  isPrimary: true,
+            try {
+              // 1. Send to Backend
+              await ApiService().addBankAccount({
+                'bankName': _bankNameController.text,
+                'accountHolder': _holderNameController.text,
+                'accountNumber': _accountNumberController.text,
+                'ifsc': _ifscController.text,
+              });
+
+              // 2. Synchronize AppState
+              await AppState().fetchBankAccounts();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text('Bank details updated successfully!'),
+                  backgroundColor: Color(0xFF059669),
                 ));
-              } else {
-                final account = AppState().bankAccounts.first;
-                account.bankName = _bankNameController.text;
-                account.accountHolder = _holderNameController.text;
-                account.accountNumber = _accountNumberController.text;
-                account.ifsc = _ifscController.text;
               }
-            });
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Bank details updated successfully!'),
-              backgroundColor: Color(0xFF059669),
-            ));
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text('Failed to save: $e'),
+                  backgroundColor: Colors.red,
+                ));
+              }
+            }
           }
         },
         style: ElevatedButton.styleFrom(

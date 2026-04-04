@@ -91,7 +91,10 @@ class PriceService {
       '1M': '1mo',
       '3M': '3mo',
       '6M': '6mo',
-      '1Y': '1y'
+      '1Y': '1y',
+      '3Y': '5y',
+      '5Y': '5y',
+      'Max': 'max'
     };
     const yahooRange = rangeMap[range] || '1mo';
     const interval = yahooRange === '1y' ? '1wk' : '1d';

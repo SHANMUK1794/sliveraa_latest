@@ -214,12 +214,16 @@ class _WealthCalculatorState extends State<WealthCalculator> {
           ),
         ),
         const SizedBox(height: 48),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildSummaryMetric('TOTAL INVESTED', currency.format(amount)),
-            _buildSummaryMetric('MATURITY VALUE', currency.format(maturityValue)),
-          ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Expanded(child: _buildSummaryMetric('TOTAL INVESTED', currency.format(amount))),
+              const SizedBox(width: 12),
+              Expanded(child: _buildSummaryMetric('MATURITY VALUE', currency.format(maturityValue))),
+            ],
+          ),
         ),
       ],
     );
@@ -238,12 +242,16 @@ class _WealthCalculatorState extends State<WealthCalculator> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          value,
-          style: GoogleFonts.manrope(
-            color: const Color(0xFF111827),
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF111827),
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
