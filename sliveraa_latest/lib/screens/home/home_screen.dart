@@ -264,15 +264,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 500),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: (showGoldPrice ? const Color(0xFFD4A017) : const Color(0xFF94A3B8)).withValues(alpha: 0.1),
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 4),
                         )
                       ],
                     ),
@@ -282,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const _PulsatingDot(),
                         const SizedBox(width: 8),
                         Container(
-                          height: 16,
+                          height: 18,
                           clipBehavior: Clip.hardEdge,
                           decoration: const BoxDecoration(),
                           child: AnimatedSwitcher(
@@ -303,9 +307,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 : '₹${formatRupee(priceProvider.silverPrice)}/gm',
                               key: ValueKey<bool>(showGoldPrice),
                               style: GoogleFonts.inter(
-                                color: const Color(0xFF111827),
+                                color: const Color(0xFF1E293B),
                                 fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
                               ),
                             ),
                           ),
@@ -410,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.secondaryBrownGold.withOpacity(0.3),
+            color: AppColors.secondaryBrownGold.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -425,7 +430,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -443,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               'Total Balance',
-              style: GoogleFonts.inter(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w500),
+              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(height: 4),
@@ -471,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
                   child: _buildCardButton(
                     'Withdraw', 
-                    Colors.white.withOpacity(0.2), 
+                    Colors.white.withValues(alpha: 0.2), 
                     Colors.white, 
                     Icons.add, // User's image looks like a plus
                   ),
@@ -509,7 +514,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Text(
           label,
           style: GoogleFonts.inter(
-            color: isSelected ? const Color(0xFFA6845B) : Colors.white.withOpacity(0.8),
+            color: isSelected ? const Color(0xFFA6845B) : Colors.white.withValues(alpha: 0.8),
             fontSize: 12,
             fontWeight: FontWeight.w700,
           ),
@@ -568,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04), 
+                color: Colors.black.withValues(alpha: 0.04), 
                 blurRadius: 20, 
                 offset: const Offset(0, 4)
               )
@@ -781,7 +786,7 @@ class _HomeScreenState extends State<HomeScreen> {
               border: Border.all(color: const Color(0xFFF1F5F9)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04), 
+                  color: Colors.black.withValues(alpha: 0.04), 
                   blurRadius: 10, 
                   offset: const Offset(0, 4)
                 )
@@ -1013,7 +1018,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               image: tag == 'ARTICLE' 
                   ? const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1579621970795-87faff2f9050?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80'),
+                      image: NetworkImage('https://images.unsplash.com/photo-1623156346149-55cd8b737727?auto=format&fit=crop&w=400&q=80'),
                       fit: BoxFit.cover,
                       colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
                     )
@@ -1295,17 +1300,18 @@ class _PulsatingDotState extends State<_PulsatingDot> with SingleTickerProviderS
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        final double glowSize = 10 * _controller.value;
         return Container(
-          width: 6,
-          height: 6,
+          width: 7,
+          height: 7,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.red,
+            color: const Color(0xFF22C55E), // Modern Finance Green
             boxShadow: [
               BoxShadow(
-                color: Colors.red.withOpacity(0.5 * (1 - _controller.value)),
-                blurRadius: 10 * _controller.value,
-                spreadRadius: 5 * _controller.value,
+                color: const Color(0xFF22C55E).withValues(alpha: 0.6 * (1 - _controller.value)),
+                blurRadius: glowSize,
+                spreadRadius: 4 * _controller.value,
               )
             ],
           ),

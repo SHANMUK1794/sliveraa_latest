@@ -282,6 +282,10 @@ class ApiService {
     return await _dio.get('delivery/me');
   }
 
+  Future<Response> createDeliveryRequest(Map<String, dynamic> data) async {
+    return await _dio.post('delivery/create', data: data);
+  }
+
   // --- NOTIFICATIONS ---
   Future<Response> getNotifications() async {
     return await _dio.get('notifications');

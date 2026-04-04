@@ -276,8 +276,8 @@ class _ChartPainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        lineColor.withOpacity(0.15),
-        lineColor.withOpacity(0.0),
+        lineColor.withValues(alpha: 0.15),
+        lineColor.withValues(alpha: 0.0),
       ],
     );
 
@@ -302,7 +302,7 @@ class _ChartPainter extends CustomPainter {
     final endY = getNormalizedY(lastPrice);
 
     final haloPaint = Paint()
-      ..color = lineColor.withOpacity(0.15)
+      ..color = lineColor.withValues(alpha: 0.15)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(endX, endY), 10, haloPaint);
 
@@ -324,7 +324,7 @@ class _ChartPainter extends CustomPainter {
     final pointY = h - (((priceVal - minP) / range) * h);
     
     final guidePaint = Paint()
-      ..color = lineColor.withOpacity(0.5)
+      ..color = lineColor.withValues(alpha: 0.5)
       ..strokeWidth = 1.0;
     canvas.drawLine(Offset(pointX, 0), Offset(pointX, h), guidePaint);
     
@@ -345,10 +345,10 @@ class _ChartPainter extends CustomPainter {
     );
     pricePainter.layout();
     
-    final TextPainter timePainter = TextPainter(
+  final TextPainter timePainter = TextPainter(
       text: TextSpan(
         text: timeStr,
-        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.8)),
+        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.8)),
       ),
       textDirection: ui.TextDirection.ltr,
     );

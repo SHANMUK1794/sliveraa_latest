@@ -20,17 +20,14 @@ class InvestmentOptionsScreen extends StatefulWidget {
 class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
   bool isSIP = true;
   String frequency = 'Monthly';
-  double amount = 500.0; // Default min SIP for Gold
-  
-  // For Silver UI variation
-  double quantity = 1.0; 
+  double oneTimeAmount = 10000.0; 
 
   late TextEditingController _amountController;
 
   @override
   void initState() {
     super.initState();
-    _amountController = TextEditingController(text: amount.toInt().toString());
+    _amountController = TextEditingController(text: (isSIP ? 500.0 : oneTimeAmount).toInt().toString());
   }
 
   @override
@@ -80,7 +77,7 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: widget.isGold ? Colors.white : Colors.white.withOpacity(0.1),
+                color: widget.isGold ? Colors.white : Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: widget.isGold ? Colors.transparent : Colors.white24),
               ),
@@ -108,26 +105,27 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     if (isSIP) {
       final double r;
       final int n;
+      final double sipAmount = double.tryParse(_amountController.text) ?? 500.0;
       
       if (frequency == 'Daily') {
         r = annualRate / 365;
         n = 365 * 5;
-        totalInvested = amount * 365 * 5;
+        totalInvested = sipAmount * 365 * 5;
       } else if (frequency == 'Weekly') {
         r = annualRate / 52;
         n = 52 * 5;
-        totalInvested = amount * 52 * 5;
+        totalInvested = sipAmount * 52 * 5;
       } else {
         // Monthly
         r = annualRate / 12;
         n = 12 * 5;
-        totalInvested = amount * 12 * 5;
+        totalInvested = sipAmount * 12 * 5;
       }
       
-      projectedReturn = amount * ((math.pow(1 + r, n) - 1) / r) * (1 + r);
+      projectedReturn = sipAmount * ((math.pow(1 + r, n) - 1) / r) * (1 + r);
     } else {
-      // One-Time Lumpsum Formula: P * (1 + r)^n
-      totalInvested = quantity * currentPrice;
+      // One-Time Lumpsum Calculation from Amount
+      totalInvested = oneTimeAmount;
       projectedReturn = totalInvested * math.pow(1 + annualRate, 5);
     }
 
@@ -169,7 +167,7 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(child: _buildProjectionStat('Investment:', '₹${totalInvested.toLocaleString(decimals: 0)}', widget.isGold)),
-              Container(width: 1, height: 16, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Container(width: 1, height: 16, color: Colors.grey.withValues(alpha: 0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
               Flexible(child: _buildProjectionStat('Earning:', '₹${earnings.toLocaleString(decimals: 0)} 🥳', widget.isGold)),
             ],
           ),
@@ -241,15 +239,11 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
-                    ),
+                    _buildGlowDot(),
                     const SizedBox(width: 8),
                     Text(
                       'Live ${widget.isGold ? "Gold" : "Silver"} Price: ₹${currentPrice.toLocaleString()}/gm',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w800, color: const Color(0xFF475569)),
                     ),
                   ],
                 ),
@@ -288,17 +282,17 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
           // Amount / Quantity Input
           _buildInteractiveInput(),
           
-          const SizedBox(height: 12),
-          Text(
-            isSIP 
-              ? 'Amount payable: ₹${amount.toLocaleString(decimals: 0)}' 
-              : 'Amount payable: ₹${(currentPrice * quantity * 1.03).toLocaleString(decimals: 0)}',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: const Color(0xFF94A3B8),
-              fontWeight: FontWeight.w600,
+          if (!isSIP) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Estimated to receive: ${((oneTimeAmount / 1.03) / currentPrice).toStringAsFixed(4)} gm',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: const Color(0xFF16A34A),
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
+          ],
           
           const SizedBox(height: 32),
           
@@ -312,11 +306,11 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
                 const SizedBox(width: 8),
                 Expanded(child: _buildQuickPill('₹2000', () => _selectAmount(2000))),
               ] else ...[
-                Expanded(child: _buildQuickPill('2 gm', () => _selectGrams(2))),
+                Expanded(child: _buildQuickPill('₹5,000', () => _selectAmount(5000))),
                 const SizedBox(width: 8),
-                Expanded(child: _buildQuickPill('5 gm', () => _selectGrams(5))),
+                Expanded(child: _buildQuickPill('₹10,000', () => _selectAmount(10000))),
                 const SizedBox(width: 8),
-                Expanded(child: _buildQuickPill('10 gm', () => _selectGrams(10))),
+                Expanded(child: _buildQuickPill('₹50,000', () => _selectAmount(50000))),
               ],
             ],
           ),
@@ -329,21 +323,12 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             height: 60,
             child: ElevatedButton(
               onPressed: () {
-                double totalAmount;
-                double totalGrams;
+                double totalAmount = double.tryParse(_amountController.text) ?? (isSIP ? 500.0 : oneTimeAmount);
+                double totalGrams = (totalAmount / 1.03) / currentPrice;
 
-                if (isSIP) {
-                  // User entered AMOUNT (Inclusive of GST)
-                  totalAmount = double.tryParse(_amountController.text) ?? amount;
-                  if (totalAmount < 500) {
-                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Minimum SIP amount is ₹500')));
-                     return;
-                  }
-                  totalGrams = (totalAmount / 1.03) / currentPrice;
-                } else {
-                  // User selected GRAMS (Exclusive of GST)
-                  totalGrams = double.tryParse(_amountController.text) ?? quantity;
-                  totalAmount = (totalGrams * currentPrice) * 1.03;
+                if (isSIP && totalAmount < 500) {
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Minimum SIP amount is ₹500')));
+                   return;
                 }
                 
                 Navigator.push(
@@ -435,14 +420,14 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         _buildRoundButton(Icons.remove, () {
           setState(() {
             if (isSIP) {
-              if (amount > 500) {
-                amount -= 100;
-                _amountController.text = amount.toInt().toString();
+              double curr = double.tryParse(_amountController.text) ?? 500.0;
+              if (curr > 500) {
+                _amountController.text = (curr - 100).toInt().toString();
               }
             } else {
-              if (quantity > 1) {
-                quantity -= 1;
-                _amountController.text = quantity.toStringAsFixed(2);
+              if (oneTimeAmount > 1000) {
+                oneTimeAmount -= 1000;
+                _amountController.text = oneTimeAmount.toInt().toString();
               }
             }
           });
@@ -453,26 +438,26 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                isSIP ? '₹' : 'gm',
+                '₹',
                 style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
               ),
               const SizedBox(height: 4),
               SizedBox(
-                width: 140,
+                width: 180,
                 child: TextField(
                   controller: _amountController,
                   textAlign: TextAlign.center,
                   keyboardType: TextInputType.number,
                   onChanged: (val) {
                     setState(() {
-                      double? v = double.tryParse(val);
-                      if (v != null) {
-                        if (isSIP) {
-                          amount = v;
-                        } else {
-                          quantity = v;
+                        final v = double.tryParse(val);
+                        if (v != null) {
+                          if (isSIP) {
+                            // Handled by controller usually
+                          } else {
+                            oneTimeAmount = v;
+                          }
                         }
-                      }
                     });
                   },
                   style: GoogleFonts.manrope(fontSize: 48, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
@@ -489,11 +474,11 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         _buildRoundButton(Icons.add, () {
           setState(() {
             if (isSIP) {
-              amount += 100;
-              _amountController.text = amount.toInt().toString();
+              double curr = double.tryParse(_amountController.text) ?? 500.0;
+              _amountController.text = (curr + 100).toInt().toString();
             } else {
-              quantity += 1;
-              _amountController.text = quantity.toStringAsFixed(2);
+              oneTimeAmount += 1000;
+              _amountController.text = oneTimeAmount.toInt().toString();
             }
           });
         }),
@@ -517,7 +502,7 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
   }
 
   Widget _buildQuickPill(String label, VoidCallback onTap) {
-    bool isSelected = !isSIP && (label.contains(quantity.toStringAsFixed(0)));
+    bool isSelected = !isSIP && (label.contains(oneTimeAmount.toInt().toString()));
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -540,19 +525,15 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     );
   }
 
-  void _selectGrams(double g) {
-    setState(() {
-      isSIP = false;
-      quantity = g;
-      _amountController.text = quantity.toStringAsFixed(0);
-    });
-  }
 
   void _selectAmount(double a) {
     setState(() {
-      isSIP = true;
-      amount = a;
-      _amountController.text = amount.toInt().toString();
+      if (isSIP) {
+        _amountController.text = a.toInt().toString();
+      } else {
+        oneTimeAmount = a;
+        _amountController.text = oneTimeAmount.toInt().toString();
+      }
     });
   }
 
@@ -651,6 +632,24 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             SizedBox(height: MediaQuery.of(context).padding.bottom),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildGlowDot() {
+    return Container(
+      width: 7,
+      height: 7,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF22C55E),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF22C55E).withValues(alpha: 0.4),
+            blurRadius: 8,
+            spreadRadius: 2,
+          )
+        ],
       ),
     );
   }

@@ -72,12 +72,16 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSectionLabel('QUANTITY TO DELIVER'),
-                    Text(
-                      'VIEW DENOMINATIONS',
-                      style: GoogleFonts.manrope(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primaryBrownGold,
+                    GestureDetector(
+                      onTap: _showDenominationsModal,
+                      child: Text(
+                        'VIEW DENOMINATIONS',
+                        style: GoogleFonts.manrope(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryBrownGold,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ],
@@ -145,26 +149,59 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
                 const SizedBox(height: 16),
                 _buildSettlementCard(
                   'Deduct from Vault',
-                  'Use your existing gold savings',
+                  'Only pay for making & shipping',
                   Icons.eco_rounded,
                   payWithVault,
                   () => setState(() => payWithVault = true),
                 ),
                 const SizedBox(height: 12),
                 _buildSettlementCard(
-                  'Pay with NetBanking/UPI',
-                  'Buy and deliver in one go',
+                  'Full Purchase & Delivery',
+                  'Pay for metal + making + shipping',
                   Icons.account_balance_rounded,
                   !payWithVault,
                   () => setState(() => payWithVault = false),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 48),
+                _buildBalanceWarning(),
+                const SizedBox(height: 20),
                 _buildProceedButton(),
                 const SizedBox(height: 40),
               ],
             ),
           ),
     );
+  }
+
+  Widget _buildBalanceWarning() {
+    double requested = double.tryParse(_gramsController.text) ?? 0;
+    if (payWithVault && requested > vaultBalance && requested > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.redAccent.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 18),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Insufficient vault balance (${vaultBalance.toStringAsFixed(2)}g available)',
+                style: GoogleFonts.inter(
+                  color: Colors.redAccent,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildSectionLabel(String text) {
@@ -299,36 +336,82 @@ class _DeliveryScreenState extends State<DeliveryScreen> {
     );
   }
 
+  void _showDenominationsModal() {
+    final List<double> denominations = isGold ? [0.5, 1, 2, 5, 10] : [10, 20, 50, 100, 250, 500];
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select Denomination',
+              style: GoogleFonts.manrope(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 24),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: denominations.map((d) => GestureDetector(
+                onTap: () {
+                  _gramsController.text = d.toString();
+                  Navigator.pop(context);
+                  setState(() {});
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Text(
+                    '${d}g ${isGold ? "Coin" : "Silver"}',
+                    style: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 13),
+                  ),
+                ),
+              )).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProceedButton() {
+    double requestedGrams = double.tryParse(_gramsController.text) ?? 0;
+    bool isInvalid = requestedGrams <= 0 || (payWithVault && requestedGrams > vaultBalance);
+
     return Container(
       width: double.infinity,
       height: 64,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
         gradient: LinearGradient(
-          colors: [AppColors.accentBrownGold, AppColors.primaryBrownGold],
+          colors: isInvalid 
+              ? [const Color(0xFF94A3B8), const Color(0xFF64748B)]
+              : [AppColors.accentBrownGold, AppColors.primaryBrownGold],
         ),
-        boxShadow: [
+        boxShadow: !isInvalid ? [
           BoxShadow(
             color: AppColors.primaryBrownGold.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
-        ],
+        ] : null,
       ),
       child: ElevatedButton(
-        onPressed: () {
-          double requestedGrams = double.tryParse(_gramsController.text) ?? 0;
-          if (requestedGrams <= 0) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter quantity')));
-            return;
-          }
+        onPressed: isInvalid ? null : () {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => DeliverySummaryScreen(
                 isGold: isGold,
                 requestedGrams: requestedGrams,
+                payWithVault: payWithVault,
               ),
             ),
           );
