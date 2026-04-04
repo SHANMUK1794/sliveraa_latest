@@ -68,5 +68,7 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSFaceIDUsageDescription</key>
+		<string>Face ID is required for secure access to your Silvra Portfolio.</string>
 	</dict>
 </plist>
