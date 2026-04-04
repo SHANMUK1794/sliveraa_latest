@@ -108,6 +108,17 @@ class AppState extends ChangeNotifier {
   // Portfolio Balances (Grams)
   double goldGrams = 0.0;
   double silverGrams = 0.0;
+  
+  // Wealth Milestones (Targets in Grams)
+  double goldTarget = 1.0; // Next target: 1g Gold Coin
+  double silverTarget = 100.0; // Next target: 100g Silver Bar
+  
+  // Investment Performance Tracker (Average Buy Price)
+  double goldAvgPrice = 6100.0; // Simulated average buy price
+  double silverAvgPrice = 90.0; // Simulated average buy price
+
+  double getGoldPerformance() => goldGrams > 0 ? ( goldGrams * (6250.0 - goldAvgPrice) ) : 0.0;
+  double getSilverPerformance() => silverGrams > 0 ? ( silverGrams * (95.0 - silverAvgPrice) ) : 0.0;
 
   // KYC Status
   String _kycStatus = "NOT_STARTED";

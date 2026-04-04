@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -27,7 +30,6 @@ import '../support/concierge_support_screen.dart';
 import '../profile/support_screen.dart';
 import '../delivery/delivery_screen.dart';
 import '../history/history_screen.dart';
-import '../../core/api_service.dart';
 
 // Format helper since formatRupee was from an unknown import in the original file.
 String formatRupee(double amount) {
@@ -41,7 +43,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _selectedIndex = 0;
   bool isGoldSelected = true;
   double get goldBalance => AppState().goldGrams;
@@ -50,10 +52,21 @@ class _HomeScreenState extends State<HomeScreen> {
   
   bool showGoldPrice = true;
   late Timer _priceTimer;
+  late AnimationController _shineController;
+  late AnimationController _secondaryShineController;
+  Offset _tiltOffset = Offset.zero;
 
   @override
   void initState() {
     super.initState();
+    _shineController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat();
+    _secondaryShineController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
     _startPriceTimer();
     _fetchInitialData();
   }
@@ -85,6 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _priceTimer.cancel();
+    _shineController.dispose();
+    _secondaryShineController.dispose();
     super.dispose();
   }
 
@@ -402,145 +417,384 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBalanceCard() {
     final priceProvider = Provider.of<PriceProvider>(context);
+    final portfolioValue = isGoldSelected 
+        ? (goldBalance * priceProvider.goldPrice) 
+        : (silverBalance * priceProvider.silverPrice);
     
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.primaryBrownGold, AppColors.secondaryBrownGold], 
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.secondaryBrownGold.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Toggle Buttons
-              Container(
-                padding: const EdgeInsets.all(4),
+    return ListenableBuilder(
+      listenable: Listenable.merge([_shineController, _secondaryShineController]),
+      builder: (context, child) {
+        return MouseRegion(
+          onHover: (event) {
+            final RenderBox box = context.findRenderObject() as RenderBox;
+            final center = box.size.center(Offset.zero);
+            setState(() {
+              _tiltOffset = Offset(
+                (event.localPosition.dx - center.dx) / center.dx,
+                (event.localPosition.dy - center.dy) / center.dy,
+              );
+            });
+          },
+          onExit: (_) => setState(() => _tiltOffset = Offset.zero),
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              final RenderBox box = context.findRenderObject() as RenderBox;
+              final center = box.size.center(Offset.zero);
+              setState(() {
+                _tiltOffset = Offset(
+                  (details.localPosition.dx - center.dx) / center.dx,
+                  (details.localPosition.dy - center.dy) / center.dy,
+                );
+              });
+            },
+            onPanEnd: (_) => setState(() => _tiltOffset = Offset.zero),
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001) // perspective
+                ..rotateX(-0.15 * _tiltOffset.dy)
+                ..rotateY(0.15 * _tiltOffset.dx),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    _buildToggleButton('Gold', isGoldSelected, () => setState(() => isGoldSelected = true)),
-                    _buildToggleButton('Silver', !isGoldSelected, () => setState(() => isGoldSelected = false)),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isGoldSelected 
+                      ? [
+                          const Color(0xFFBF953F), 
+                          const Color(0xFFFCF6BA), 
+                          const Color(0xFFB38728), 
+                          const Color(0xFFFBF5B7), 
+                          const Color(0xFFAA771C)
+                        ] 
+                      : [
+                          const Color(0xFFBDBBBE), 
+                          const Color(0xFF9D9D9C), 
+                          const Color(0xFF70706F), 
+                          const Color(0xFFDBDBDB), 
+                          const Color(0xFFBDBBBE)
+                        ], 
+                    stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (isGoldSelected ? const Color(0xFF9A7B4F) : const Color(0xFF71717A))
+                          .withValues(alpha: 0.4 + (0.1 * math.sin(_shineController.value * math.pi * 2))),
+                      blurRadius: 35,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 15),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      blurRadius: 0,
+                      offset: Offset(-2 + (_tiltOffset.dx * 10), -2 + (_tiltOffset.dy * 10)),
+                    ),
                   ],
                 ),
-              ),
-              // Percentage Pill removed per user request
-            ],
-          ),
-          const SizedBox(height: 24),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Total Balance',
-              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.9), fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '₹${formatRupee(isGoldSelected ? (goldBalance * priceProvider.goldPrice) : (silverBalance * priceProvider.silverPrice))}',
-                style: GoogleFonts.manrope(
-                  color: Colors.white, 
-                  fontSize: 34, 
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
-                  child: _buildCardButton(
-                    'Withdraw', 
-                    Colors.white.withValues(alpha: 0.2), 
-                    Colors.white, 
-                    Icons.add, // User's image looks like a plus
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      // Zenith Particle & Grain System
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: 0.08,
+                          child: CustomPaint(painter: _ZenithPainter(isGoldSelected: isGoldSelected)),
+                        ),
+                      ),
+                      // Secondary Holographic Fast Beam
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          alignment: Alignment(lerpDouble(2.5, -2.5, _secondaryShineController.value)!, 0),
+                          widthFactor: 0.2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topRight,
+                                end: Alignment.bottomLeft,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.25),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.4, 0.5, 0.6],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Primary Signature Shine Streak
+                      Positioned.fill(
+                        child: FractionallySizedBox(
+                          alignment: Alignment(lerpDouble(-2.5, 2.5, _shineController.value)!, 0),
+                          widthFactor: 0.5,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.0),
+                                  Colors.white.withValues(alpha: 0.4),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                                stops: const [0.35, 0.5, 0.65],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Glass Sheen Overlay
+                      Positioned(
+                        top: -40,
+                        right: -30,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                Colors.white.withValues(alpha: 0.1),
+                                Colors.white.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Toggle Buttons (Zenith Glass)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        _buildToggleButton('Gold', isGoldSelected, () => setState(() => isGoldSelected = true)),
+                                        _buildToggleButton('Silver', !isGoldSelected, () => setState(() => isGoldSelected = false)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              _buildLiveBadge(),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'ZENITH PORTFOLIO',
+                                      style: GoogleFonts.inter(
+                                        color: Colors.black.withValues(alpha: 0.6), 
+                                        fontSize: 8, 
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          Text(
+                                            '₹',
+                                            style: GoogleFonts.spectral( // Elegant Serif Contrast
+                                              color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
+                                              fontSize: 28, 
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            formatRupee(portfolioValue).replaceAll('₹', ''),
+                                            style: GoogleFonts.manrope(
+                                              color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
+                                              fontSize: 38, 
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -1.8,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'HOLDING: ',
+                                          style: GoogleFonts.inter(
+                                            color: Colors.black.withValues(alpha: 0.5), 
+                                            fontSize: 9, 
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${(isGoldSelected ? goldBalance : silverBalance).toStringAsFixed(3)} ${isGoldSelected ? 'gm' : 'gm'}',
+                                          style: GoogleFonts.manrope(
+                                            color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
+                                            fontSize: 12, 
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
+                                  child: _buildCardButton(
+                                    'Withdraw', 
+                                    Colors.black.withValues(alpha: 0.1), 
+                                    isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
+                                    Icons.account_balance_wallet_outlined,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: isGoldSelected)),
+                                  child: _buildCardButton(
+                                    'Start Saving', 
+                                    isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
+                                    Colors.white, 
+                                    Icons.auto_graph_rounded,
+                                    isPrimary: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: isGoldSelected)),
-                  child: _buildCardButton(
-                    'Start Saving', 
-                    Colors.white, 
-                    const Color(0xFFB08C65), 
-                    Icons.pie_chart_outline_rounded,
-                  ),
-                ),
-              ),
-            ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLiveBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _PulsatingDot(),
+          const SizedBox(width: 8),
+          Text(
+            'LIVE MARKET',
+            style: GoogleFonts.inter(
+              color: isGoldSelected ? const Color(0xFF422006) : Colors.black, 
+              fontSize: 9, 
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPerformancePill() {
+    return const SizedBox.shrink(); // Removed per user request to compact card
   }
 
   Widget _buildToggleButton(String label, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected ? [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 1))
+          ] : null,
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
-            color: isSelected ? const Color(0xFFA6845B) : Colors.white.withValues(alpha: 0.8),
+            color: isSelected 
+              ? (isGoldSelected ? const Color(0xFF422006) : Colors.black) 
+              : (isGoldSelected ? const Color(0xFF422006).withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5)),
             fontSize: 12,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCardButton(String label, Color bg, Color text, IconData icon) {
+  Widget _buildCardButton(String label, Color bg, Color text, IconData icon, {bool isPrimary = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: isPrimary ? [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ] : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 16, color: text),
-          const SizedBox(width: 6),
+          Icon(icon, size: 18, color: text),
+          const SizedBox(width: 8),
           Text(
             label,
             style: GoogleFonts.manrope(
               color: text, 
-              fontSize: 14, 
-              fontWeight: FontWeight.w700
+              fontSize: 13, 
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
             ),
           ),
         ],
@@ -1267,6 +1521,67 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+
+}
+
+class _ZenithPainter extends CustomPainter {
+  final bool isGoldSelected;
+  _ZenithPainter({required this.isGoldSelected});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final random = math.Random(42);
+    final paint = Paint();
+    
+    // Draw fine metallic grain
+    for (int i = 0; i < 3000; i++) {
+      paint.color = Colors.black.withValues(alpha: random.nextDouble() * 0.4);
+      canvas.drawCircle(
+        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
+        random.nextDouble() * 0.6,
+        paint,
+      );
+    }
+
+    // Draw Zenith Sparkle Particles (Gold Dust)
+    for (int i = 0; i < 40; i++) {
+      final x = random.nextDouble() * size.width;
+      final y = random.nextDouble() * size.height;
+      final sizeMult = random.nextDouble();
+      
+      paint.color = Colors.white.withValues(alpha: 0.3 * sizeMult);
+      canvas.drawCircle(Offset(x, y), 1.5 * sizeMult, paint);
+      
+      // Add a small cross-shine to some particles
+      if (random.nextDouble() > 0.8) {
+        paint.strokeWidth = 0.4;
+        canvas.drawLine(Offset(x - 2, y), Offset(x + 2, y), paint);
+        canvas.drawLine(Offset(x, y - 2), Offset(x, y + 2), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class _GrainPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint();
+    final random = math.Random(42);
+    for (int i = 0; i < 5000; i++) {
+      paint.color = Colors.black.withValues(alpha: random.nextDouble() * 0.5);
+      canvas.drawCircle(
+        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
+        random.nextDouble() * 0.8,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class _PulsatingDot extends StatefulWidget {
