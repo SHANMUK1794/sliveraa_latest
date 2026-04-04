@@ -1,10 +1,4 @@
 const axios = require('axios');
-
-/**
- * Scrapes live Delhi Gold and Silver prices.
- * Targets: 24K Gold (per gram) and 999 Silver (per gram).
- */
-const axios = require('axios');
 const cheerio = require('cheerio');
 
 /**
