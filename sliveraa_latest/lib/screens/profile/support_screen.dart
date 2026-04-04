@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
+import '../support/concierge_support_screen.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
@@ -26,7 +27,7 @@ class SupportScreen extends StatelessWidget {
         child: Column(
           children: [
             _buildSupportHeader(),
-            _buildContactOptions(),
+            _buildContactOptions(context),
             _buildFAQs(),
           ],
         ),
@@ -65,7 +66,7 @@ class SupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildContactOptions() {
+  Widget _buildContactOptions(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -95,7 +96,7 @@ class SupportScreen extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
             child: Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(width: 16),

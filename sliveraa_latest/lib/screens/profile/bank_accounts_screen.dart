@@ -1,4 +1,4 @@
-m nimport 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_state.dart';
 import '../../theme/app_colors.dart';
@@ -162,7 +162,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0xFFEDC9AF).withOpacity(0.5), width: 1.5),
+            border: Border.all(color: const Color(0xFFEDC9AF).withValues(alpha: 0.5), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFFB48C65).withValues(alpha: 0.08),
