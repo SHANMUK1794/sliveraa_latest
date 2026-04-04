@@ -435,22 +435,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              // Percentage Pill
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFBBE5BE),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '+8.4%',
-                  style: GoogleFonts.inter(
-                    color: const Color(0xFF15803D),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              // Percentage Pill removed per user request
             ],
           ),
           const SizedBox(height: 24),
@@ -613,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildSwipeSlider(),
               const SizedBox(height: 24),
               Row(
-                children: ['₹1,000', '₹2,000', '₹3,000', '₹5,000'].map((e) {
+                children: ['₹500', '₹1,000', '₹2,000', '₹5,000'].map((e) {
                   bool isSelected = e == selectedAmount;
                   return Expanded(
                     child: GestureDetector(
@@ -683,12 +668,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   final appState = context.read<AppState>();
                   if (appState.kycStatus == "VERIFIED") {
                     double amountValue = double.parse(selectedAmount.replaceAll('₹', '').replaceAll(',', ''));
+                    double netAmount = amountValue / 1.03;
+                    double price = isGoldSelected ? PriceData.goldPrice : PriceData.silverPrice;
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => SummaryScreen(
                         isGold: isGoldSelected, 
                         amount: amountValue, 
-                        grams: amountValue / (isGoldSelected ? PriceData.goldPrice : PriceData.silverPrice),
+                        grams: netAmount / price,
                       )),
                     );
                   } else {

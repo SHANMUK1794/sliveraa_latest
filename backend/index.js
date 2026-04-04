@@ -37,11 +37,13 @@ app.get('/health', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+const priceService = require('./src/services/priceService');
 
 app.listen(PORT, () => {
   console.log(`🚀 Silvra Backend running on http://localhost:${PORT}`);
+  
+  // Start background price automation (Delhi Gold/Silver Scraper)
+  priceService.initAutoUpdate().catch(err => {
+    console.error('Failed to start price automation:', err.message);
+  });
 });

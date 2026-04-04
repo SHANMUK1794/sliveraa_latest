@@ -47,8 +47,11 @@ class _PriceTrendsScreenState extends State<PriceTrendsScreen> {
               bottom: 24,
             ),
             decoration: const BoxDecoration(
-              // Rose Gold / Peach Gold from the latest design request
-              color: Color(0xFFF5D6C6), 
+              gradient: LinearGradient(
+                colors: [AppColors.primaryBrownGold, AppColors.secondaryBrownGold],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
             child: Column(
               children: [
@@ -56,7 +59,7 @@ class _PriceTrendsScreenState extends State<PriceTrendsScreen> {
                   children: [
                     if (!widget.hideBackButton)
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: AppColors.darkText, size: 24),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
                         onPressed: () => Navigator.pop(context),
                       )
                     else
@@ -68,7 +71,7 @@ class _PriceTrendsScreenState extends State<PriceTrendsScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          color: Colors.white,
                         ),
                       ),
                     ),

@@ -31,7 +31,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
     try {
       final state = context.read<AppState>();
       final response = await ApiService().createOrder(
-        widget.amount * 1.03, // Total including GST
+        widget.amount, // Total amount (Inclusive of 3% GST)
         widget.isGold ? 'GOLD' : 'SILVER',
         widget.grams,
         state.userId,
@@ -43,7 +43,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => PaymentScreen(
-              amount: widget.amount * 1.03,
+              amount: widget.amount,
               orderId: orderId,
               isGold: widget.isGold,
               grams: widget.grams,
@@ -68,8 +68,10 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double gst = widget.amount * 0.03;
-    double total = widget.amount + gst;
+    // Inclusive GST Logic: widget.amount is the TOTAL paid by user
+    double total = widget.amount;
+    double baseValue = total / 1.03;
+    double gst = total - baseValue;
     String metal = widget.isGold ? 'gold' : 'silver';
 
     return Scaffold(
@@ -97,7 +99,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '₹${(widget.amount/widget.grams).toStringAsFixed(2)}/gm + 3% GST',
+                    '₹${(baseValue/widget.grams).toStringAsFixed(2)}/gm (Excl. 3% GST)',
                     style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
                   ),
                   Container(
@@ -127,7 +129,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 children: [
                   _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} quantity', '${widget.grams.toStringAsFixed(widget.isGold ? 3 : 1)}gm'),
                   const SizedBox(height: 24),
-                  _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} value', '₹${widget.amount.toLocaleString()}'),
+                  _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} value', '₹${baseValue.toLocaleString()}'),
                   const SizedBox(height: 24),
                   _buildRow('GST (3%)', '₹${gst.toLocaleString()}'),
                   const SizedBox(height: 30),

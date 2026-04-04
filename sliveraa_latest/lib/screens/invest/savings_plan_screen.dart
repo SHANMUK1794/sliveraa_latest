@@ -45,7 +45,7 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
   double get estimatedValue {
     // Correct SIP Calculation for 14% p.a.
     // FV = P * [((1 + i)^n - 1) / i] * (1 + i)
-    double p = amount;
+    double p = amount / 1.03; // Deduct 3% GST from every installment for accuracy
     double rAnnual = 0.14;
     double i; // periodic rate
     int n;    // total periods
@@ -498,7 +498,7 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'ESTIMATED VALUE IN 1 YEAR',
+                'ESTIMATED VALUE IN 1 YEAR (14% P.A.)',
                 style: GoogleFonts.inter(
                   color: const Color(0xFF9CA3AF),
                   fontSize: 10,
@@ -564,12 +564,13 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
       child: ElevatedButton(
         onPressed: () {
           double price = PriceData.getPrice(isGold);
+          double netAmount = amount / 1.03;
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => SummaryScreen(
               isGold: isGold,
-              amount: amount,
-              grams: amount / price,
+              amount: amount, // Total paid
+              grams: netAmount / price, // Correct allotment
             )),
           );
         },

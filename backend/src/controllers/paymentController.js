@@ -24,13 +24,13 @@ class PaymentController {
       let finalAmount = amount;
       let weight = grams;
 
-      // If weight is provided but amount is not, calculate based on live price
-      if (!finalAmount && weight && assetType) {
+      // GST Implementation: Allotment is based on 97% of total amount (Post 3% GST)
+      if (assetType && finalAmount) {
         const symbol = assetType === 'GOLD' ? 'XAU' : 'XAG';
-        finalAmount = await priceService.calculatePrice(symbol, weight);
+        const pricePerGram = await priceService.getLivePrice(symbol);
+        const baseAmount = finalAmount / 1.03; // Deduct 3% GST
+        weight = baseAmount / pricePerGram;
       }
-
-      if (!finalAmount) return res.status(400).json({ error: 'Amount or Weight required' });
 
       const amountPaise = Math.round(finalAmount * 100);
       const order = await paymentService.createOrder(amountPaise);

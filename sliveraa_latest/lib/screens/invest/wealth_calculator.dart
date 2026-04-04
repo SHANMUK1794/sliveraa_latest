@@ -38,16 +38,22 @@ class _WealthCalculatorState extends State<WealthCalculator> {
 
   double get estimatedProfit {
     if (amount <= 0) return 0;
+    double netInvestment = amount / 1.03; // Deduct 3% GST from investable amount
     double years = isMonths ? (tenureValue / 12.0) : tenureValue;
-    return amount * (math.pow(1 + rate, years) - 1);
+    return netInvestment * (math.pow(1 + rate, years) - 1);
   }
 
-  double get maturityValue => amount + estimatedProfit;
+  double get maturityValue {
+    if (amount <= 0) return 0;
+    double netInvestment = amount / 1.03;
+    return netInvestment + estimatedProfit;
+  }
 
   double get metalWeight {
     if (amount <= 0) return 0;
-    double pricePerGm = isGold ? 6245.0 : 75.40;
-    return amount / pricePerGm;
+    double pricePerGm = PriceData.getPrice(isGold);
+    double netInvestment = amount / 1.03; // Allotment is post-GST
+    return netInvestment / pricePerGm;
   }
 
   void _reset() {
@@ -170,7 +176,7 @@ class _WealthCalculatorState extends State<WealthCalculator> {
     return Column(
       children: [
         Text(
-          'ESTIMATED PROFIT',
+          'ESTIMATED PROFIT (14% P.A.)',
           style: GoogleFonts.inter(
             color: const Color(0xFF6B7280),
             fontSize: 11,
