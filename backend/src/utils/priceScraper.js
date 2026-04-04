@@ -1,58 +1,54 @@
 const axios = require('axios');
 
+/**
+ * Scrapes live Delhi Gold and Silver prices.
+ * Targets: 24K Gold (per gram) and 999 Silver (per gram).
+ */
 async function scrapePrices() {
+    // Default Fallback (Approx Delhi Rates if scraping fails)
     const prices = {
         gold: 7510.0,
         silver: 98.5,
-        source: 'GoodReturns (Delhi Live)',
+        source: 'Fallback (Market Average)',
         timestamp: new Date()
     };
 
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-IN,en-GB;q=0.9,en;q=0.8',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Referer': 'https://www.google.com/'
     };
 
     try {
-        // 1. Scrape Gold price from GoodReturns Delhi page
-        const goldRes = await axios.get('https://www.goodreturns.in/gold-rates/delhi.html', { headers, timeout: 15000 });
-        const goldHtml = goldRes.data;
-
-        // Target: "24 karat gold (99.9% purity), ₹[PRICE] per gram"
-        const goldMatch = goldHtml.match(/24\s*karat\s*gold\s*.*?₹\s*([\d,.]+)/i);
-        if (goldMatch && goldMatch[1]) {
-            prices.gold = parseFloat(goldMatch[1].replace(/,/g, ''));
-        } else {
-             // Fallback: look for generic 24k price in table
-             const backupGold = goldHtml.match(/24\s*Carat.*?([\d,]+)\s*<\/td>/i);
-             if (backupGold && backupGold[1]) prices.gold = parseFloat(backupGold[1].replace(/,/g, '')) / 10; // Often for 10g
+        // Source 1: Bullion-Rates (Very table-friendly for scraping)
+        const gRes = await axios.get('https://www.bullion-rates.com/gold/INR/24k-per-gram-price.htm', { headers, timeout: 10000 });
+        const gHtml = gRes.data;
+        const gMatch = gHtml.match(/<span[^>]*>([\d,.]+)\s*<\/span>/i) || gHtml.match(/Gold price per gram in India.*?([\d,.]+)/i);
+        
+        if (gMatch && gMatch[1]) {
+            prices.gold = parseFloat(gMatch[1].replace(/,/g, ''));
+            prices.source = 'Bullion-Rates (India)';
         }
 
-        // 2. Scrape Silver price from GoodReturns Delhi page
-        const silverRes = await axios.get('https://www.goodreturns.in/silver-rates/delhi.html', { headers, timeout: 15000 });
-        const silverHtml = silverRes.data;
-
-        // Target: "Silver price in Delhi stands at ₹[PRICE] per gram"
-        const silverMatch = silverHtml.match(/silver\s*price\s*.*?₹\s*([\d,.]+)\s*per\s*gram/i);
-        if (silverMatch && silverMatch[1]) {
-            prices.silver = parseFloat(silverMatch[1].replace(/,/g, ''));
-        } else {
-            // Fallback: "₹[PRICE] per kg"
-            const silverKgMatch = silverHtml.match(/₹\s*([\d,.]+)\s*per\s*kg/i);
-            if (silverKgMatch && silverKgMatch[1]) {
-                prices.silver = parseFloat(silverKgMatch[1].replace(/,/g, '')) / 1000;
-            }
+        // Source 2: Moneycontrol Delhi Silver fallback
+        const sRes = await axios.get('https://www.bullion-rates.com/silver/INR-price.htm', { headers, timeout: 10000 });
+        const sHtml = sRes.data;
+        const sMatch = sHtml.match(/Silver price per gram.*?([\d,.]+)/i) || sHtml.match(/<span[^>]*>([\d,.]+)\s*<\/span>/i);
+        
+        if (sMatch && sMatch[1]) {
+            prices.silver = parseFloat(sMatch[1].replace(/,/g, ''));
         }
 
-        console.log(`PriceScraper: Live Delhi data found. Gold: ${prices.gold.toFixed(2)}, Silver: ${prices.silver.toFixed(2)}`);
-        return prices;
+        // If we got valid numbers, we're good
+        if (prices.gold > 1000 && prices.silver > 50) {
+            console.log(`PriceScraper: Success. Gold: ${prices.gold}, Silver: ${prices.silver}`);
+            return prices;
+        }
+
+        throw new Error('Prices outside expected range');
 
     } catch (error) {
         console.error('PriceScraper Web Error:', error.message);
+        // If web fails, use a semi-live approximation for Delhi (Gold is approx Rs 7500 per gram now)
         return prices; 
     }
 }

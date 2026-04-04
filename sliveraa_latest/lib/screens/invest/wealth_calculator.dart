@@ -185,13 +185,16 @@ class _WealthCalculatorState extends State<WealthCalculator> {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          '+${currency.format(estimatedProfit)}',
-          style: GoogleFonts.manrope(
-            color: const Color(0xFF0D9488),
-            fontSize: 52,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -1,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '+${currency.format(estimatedProfit)}',
+            style: GoogleFonts.manrope(
+              color: const Color(0xFF0D9488),
+              fontSize: 52,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -287,23 +290,29 @@ class _WealthCalculatorState extends State<WealthCalculator> {
                 ),
               ),
               Expanded(
-                child: TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (val) => setState(() => amount = double.tryParse(val.replaceAll(',', '')) ?? 0),
-                  style: GoogleFonts.manrope(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkText,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '2,000',
-                    hintStyle: GoogleFonts.manrope(
-                      color: const Color(0xFFE5E7EB),
-                      fontWeight: FontWeight.w800,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (val) => setState(() => amount = double.tryParse(val.replaceAll(',', '')) ?? 0),
+                      style: GoogleFonts.manrope(
+                        fontSize: 44,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.darkText,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '2,000',
+                        hintStyle: GoogleFonts.manrope(
+                          color: const Color(0xFFE5E7EB),
+                          fontWeight: FontWeight.w800,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
@@ -522,27 +531,31 @@ class _WealthCalculatorState extends State<WealthCalculator> {
             ],
           ),
           const SizedBox(height: 16),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: metalWeight.toStringAsFixed(3),
-                  style: GoogleFonts.manrope(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.darkText,
-                    letterSpacing: -1,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: metalWeight.toStringAsFixed(4),
+                    style: GoogleFonts.manrope(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.darkText,
+                      letterSpacing: -1,
+                    ),
                   ),
-                ),
-                TextSpan(
-                  text: ' gm',
-                  style: GoogleFonts.manrope(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.inactive,
+                  TextSpan(
+                    text: ' gm',
+                    style: GoogleFonts.manrope(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.inactive,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),

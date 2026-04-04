@@ -399,7 +399,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       children: [
         Expanded(
           child: _buildMetalSmallCard(
-            'GOLD (${goldGrams.toStringAsFixed(2)} GM)',
+            'GOLD (${goldGrams.toStringAsFixed(4)} GM)',
             formatter.format(goldValue),
             '${(goldPercent * 100).toStringAsFixed(0)}%',
             const Color(0xFFF5EDE3),
@@ -410,7 +410,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         const SizedBox(width: 16),
         Expanded(
           child: _buildMetalSmallCard(
-            'SILVER (${silverGrams.toStringAsFixed(2)} GM)',
+            'SILVER (${silverGrams.toStringAsFixed(4)} GM)',
             formatter.format(silverValue),
             '${((1 - goldPercent) * 100).toStringAsFixed(0)}%',
             const Color(0xFFF3F4F6),
@@ -541,7 +541,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             child: CustomPaint(
               size: Size.infinite,
               painter: SimpleLineChartPainter(
-                color: AppColors.primaryBrownGold,
+                data: [100, 105, 102, 110, 108, 115, 120],
                 period: selectedPeriod,
               ),
             ),
@@ -849,61 +849,60 @@ class DonutChartPainter extends CustomPainter {
 }
 
 class SimpleLineChartPainter extends CustomPainter {
-  final Color color;
+  final List<double> data;
   final String period;
 
-  SimpleLineChartPainter({required this.color, required this.period});
+  SimpleLineChartPainter({required this.data, required this.period});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4
-      ..strokeCap = StrokeCap.round;
+    if (data.isEmpty) return;
 
-    final path = Path();
-    
-    if (period == '1M') {
-      path.moveTo(0, size.height * 0.8);
-      path.quadraticBezierTo(size.width * 0.2, size.height * 0.6, size.width * 0.4, size.height * 0.7);
-      path.quadraticBezierTo(size.width * 0.6, size.height * 0.9, size.width * 0.8, size.height * 0.1);
-      path.quadraticBezierTo(size.width * 0.9, size.height * 0.3, size.width, size.height * 0.2);
-    } else if (period == '3M') {
-      path.moveTo(0, size.height * 0.7);
-      path.quadraticBezierTo(size.width * 0.3, size.height * 0.8, size.width * 0.5, size.height * 0.4);
-      path.quadraticBezierTo(size.width * 0.7, size.height * 0.2, size.width, size.height * 0.5);
-    } else if (period == '6M') {
-      path.moveTo(0, size.height * 0.9);
-      path.lineTo(size.width * 0.2, size.height * 0.8);
-      path.lineTo(size.width * 0.4, size.height * 0.6);
-      path.lineTo(size.width * 0.6, size.height * 0.7);
-      path.lineTo(size.width * 0.8, size.height * 0.3);
-      path.lineTo(size.width, size.height * 0.2);
-    } else {
-      path.moveTo(0, size.height * 0.8);
-      path.quadraticBezierTo(size.width * 0.1, size.height * 0.9, size.width * 0.3, size.height * 0.7);
-      path.quadraticBezierTo(size.width * 0.5, size.height * 0.4, size.width * 0.7, size.height * 0.6);
-      path.quadraticBezierTo(size.width * 0.9, size.height * 0.1, size.width, size.height * 0.2);
+    final double stepX = size.width / (data.length - 1);
+    final double min = data.reduce((a, b) => a < b ? a : b);
+    final double max = data.reduce((a, b) => a > b ? a : b);
+    final double range = (max - min).abs() < 0.1 ? 1.0 : (max - min);
+
+    double getY(double val) => size.height - ((val - min) / range) * size.height;
+
+    final Path path = Path();
+    path.moveTo(0, getY(data[0]));
+
+    for (int i = 0; i < data.length - 1; i++) {
+      final p1 = Offset(i * stepX, getY(data[i]));
+      final p2 = Offset((i + 1) * stepX, getY(data[i + 1]));
+      final controlPoint1 = Offset(p1.dx + (p2.dx - p1.dx) / 2, p1.dy);
+      final controlPoint2 = Offset(p1.dx + (p2.dx - p1.dx) / 2, p2.dy);
+      path.cubicTo(controlPoint1.dx, controlPoint1.dy, controlPoint2.dx, controlPoint2.dy, p2.dx, p2.dy);
     }
+
+    final Paint paint = Paint()
+      ..color = const Color(0xFFB48C65)
+      ..strokeWidth = 3.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
     canvas.drawPath(path, paint);
 
-    final fillPath = Path.from(path);
+    final Path fillPath = Path.from(path);
     fillPath.lineTo(size.width, size.height);
     fillPath.lineTo(0, size.height);
     fillPath.close();
 
-    final fillPaint = Paint()
+    final Paint fillPaint = Paint()
+      ..style = PaintingStyle.fill
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [color.withOpacity(0.3), color.withOpacity(0.0)],
-      ).createShader(Rect.fromLTRB(0, 0, size.width, size.height));
+        colors: [const Color(0xFFB48C65).withOpacity(0.2), const Color(0xFFB48C65).withOpacity(0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
     canvas.drawPath(fillPath, fillPaint);
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant SimpleLineChartPainter oldDelegate) {
+    return oldDelegate.data != data || oldDelegate.period != period;
+  }
 }

@@ -257,7 +257,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     String subText = '${_formatTime(t['createdAt'])}';
     if (t['type'] == 'WITHDRAW') subText += ' • Income';
 
-    double amount = t['amount'] ?? 0.0;
+    double amount = (t['amount'] ?? 0).toDouble();
     String sign = isBuy ? '-' : '+';
     Color amountColor = isBuy ? const Color(0xFF0F172A) : const Color(0xFF16A34A);
     // Overrides for exact match

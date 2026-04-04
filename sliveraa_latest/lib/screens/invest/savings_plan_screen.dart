@@ -388,35 +388,37 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: IntrinsicWidth(
-                  child: TextField(
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '0',
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: '0',
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      textAlign: TextAlign.center,
+                      cursorHeight: 48,
+                      cursorWidth: 2,
+                      cursorColor: const Color(0xFF1F2937),
+                      style: GoogleFonts.manrope(
+                        fontSize: 56,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF1F2937),
+                      ),
+                      onChanged: (val) {
+                        double? newVal = double.tryParse(val.replaceAll(',', ''));
+                        if (newVal != null) {
+                          setState(() {
+                            amount = newVal;
+                          });
+                        }
+                      },
+                      controller: _amountController,
                     ),
-                    textAlign: TextAlign.center,
-                    cursorHeight: 48,
-                    cursorWidth: 2,
-                    cursorColor: const Color(0xFF1F2937),
-                    style: GoogleFonts.manrope(
-                      fontSize: 56,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFF1F2937),
-                    ),
-                    onChanged: (val) {
-                      double? newVal = double.tryParse(val.replaceAll(',', ''));
-                      if (newVal != null) {
-                        setState(() {
-                          amount = newVal;
-                        });
-                      }
-                    },
-                    controller: _amountController,
                   ),
                 ),
               ),
@@ -494,40 +496,42 @@ class _SavingsPlanScreenState extends State<SavingsPlanScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ESTIMATED VALUE IN 1 YEAR (14% P.A.)',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF9CA3AF),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  formatter.format(estimatedValue),
-                  style: GoogleFonts.manrope(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF1F2937),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ESTIMATED VALUE IN 1 YEAR (14% P.A.)',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF9CA3AF),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '*Based on average market trends for ${isGold ? '24K Gold' : 'Fine Silver'}',
-                style: GoogleFonts.inter(
-                  color: const Color(0xFF9CA3AF),
-                  fontSize: 8,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 8),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    formatter.format(estimatedValue),
+                    style: GoogleFonts.manrope(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  '*Based on average market trends for ${isGold ? '24K Gold' : 'Fine Silver'}',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF9CA3AF),
+                    fontSize: 8,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ),
           Container(
             padding: const EdgeInsets.all(16),
