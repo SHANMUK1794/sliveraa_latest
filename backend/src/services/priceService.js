@@ -46,17 +46,21 @@ class PriceService {
       const scraped = await scrapePrices();
       const now = new Date();
 
-      if (scraped.gold) {
-        this.cache.XAU = { price: scraped.gold, updatedAt: now.getTime() };
-        await this.updateDbPrice('GOLD', scraped.gold, scraped.source);
-      }
+      if (scraped) {
+        if (scraped.gold) {
+          this.cache.XAU = { price: scraped.gold, updatedAt: now.getTime() };
+          await this.updateDbPrice('GOLD', scraped.gold, scraped.source);
+        }
 
-      if (scraped.silver) {
-        this.cache.XAG = { price: scraped.silver, updatedAt: now.getTime() };
-        await this.updateDbPrice('SILVER', scraped.silver, scraped.source);
+        if (scraped.silver) {
+          this.cache.XAG = { price: scraped.silver, updatedAt: now.getTime() };
+          await this.updateDbPrice('SILVER', scraped.silver, scraped.source);
+        }
+        
+        console.log(`PriceService: Successfully automated price update at ${now.toLocaleTimeString()}`);
+      } else {
+        console.warn('PriceService: Scraper failed, using last known data (No Hardcoding)');
       }
-      
-      console.log(`PriceService: Successfully automated price update at ${now.toLocaleTimeString()}`);
     } catch (error) {
       console.error('PriceService: Auto-update error:', error.message);
     }
