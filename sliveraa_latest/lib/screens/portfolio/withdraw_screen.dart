@@ -4,6 +4,7 @@ import '../../utils/price_data.dart';
 import '../../utils/extensions.dart';
 import '../../utils/app_state.dart';
 import '../../theme/app_colors.dart';
+import '../../core/api_service.dart';
 
 class WithdrawScreen extends StatefulWidget {
   final bool isGoldInitial;
@@ -18,6 +19,8 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
   final TextEditingController _amountController = TextEditingController();
   String selectedAmount = '₹2,000';
 
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,7 +34,7 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     super.dispose();
   }
 
-  double get withdrawableAmount => 12450.0; // Mocked for UI parity, should be (balance * price) in real app
+  double get withdrawableAmount => currentBalance * currentPrice;
   double get currentBalance => isGold ? AppState().goldGrams : AppState().silverGrams;
   double get currentPrice => isGold ? PriceData.goldPrice : PriceData.silverPrice;
   double get gramsEquivalent => (double.tryParse(_amountController.text) ?? 0) / currentPrice;
@@ -102,25 +105,27 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             const SizedBox(height: 40),
             
             // Actions
-            ElevatedButton(
-              onPressed: _processWithdrawal,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFB08C65),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 64),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-                elevation: 12,
-                shadowColor: const Color(0xFFB08C65).withValues(alpha: 0.4),
-              ),
-              child: Text(
-                'WITHDRAW NOW',
-                style: GoogleFonts.manrope(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
+            isLoading 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFFB08C65)))
+              : ElevatedButton(
+                  onPressed: _processWithdrawal,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFB08C65),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 64),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                    elevation: 12,
+                    shadowColor: const Color(0xFFB08C65).withOpacity(0.4),
+                  ),
+                  child: Text(
+                    'WITHDRAW NOW',
+                    style: GoogleFonts.manrope(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
-              ),
-            ),
             
             const SizedBox(height: 12),
             
@@ -605,13 +610,49 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
     );
   }
 
-  void _processWithdrawal() {
-    final amount = double.tryParse(_amountController.text) ?? 0;
+  void _processWithdrawal() async {
+    final amountText = _amountController.text.replaceAll(',', '');
+    final amount = double.tryParse(amountText) ?? 0;
+    
     if (amount < 100) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Minimum withdrawal is ₹100')));
       return;
     }
-    _showSuccessDialog();
+
+    if (amount > withdrawableAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Insufficient metal balance')));
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await ApiService().withdraw(amount, isGold ? 'GOLD' : 'SILVER');
+      
+      if (response.statusCode == 200) {
+        // Update local app state
+        final weightDeducted = (response.data['weightDeducted'] as num).toDouble();
+        if (isGold) {
+          AppState().goldGrams -= weightDeducted;
+        } else {
+          AppState().silverGrams -= weightDeducted;
+        }
+        
+        if (mounted) {
+          _showSuccessDialog();
+        }
+      } else {
+        throw Exception(response.data['error'] ?? 'Withdrawal failed');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   void _showSuccessDialog() {

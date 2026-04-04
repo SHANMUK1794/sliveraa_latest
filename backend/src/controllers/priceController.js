@@ -34,6 +34,27 @@ class PriceController {
       res.status(500).json({ error: 'Failed to fetch metal prices' });
     }
   }
+
+  /**
+   * Get historical price data
+   */
+  async getPriceHistory(req, res) {
+    try {
+      const { metal, period } = req.query; // metal: GOLD/SILVER, period: 1M/3M/6M/1Y
+      const symbol = metal === 'SILVER' ? 'XAG' : 'XAU';
+      
+      const history = await priceService.getHistory(symbol, period);
+      
+      res.json({
+        metal,
+        period,
+        history
+      });
+    } catch (error) {
+      console.error('Fetch History Error:', error);
+      res.status(500).json({ error: 'Failed to fetch price history' });
+    }
+  }
 }
 
 module.exports = new PriceController();

@@ -13,6 +13,7 @@ import '../../utils/extensions.dart';
 import '../../widgets/custom_bottom_navbar.dart';
 import '../../theme/app_colors.dart';
 import '../profile/profile_screen.dart';
+import '../../core/api_service.dart';
 
 class PortfolioScreen extends StatefulWidget {
   final double goldBalance;
@@ -31,6 +32,39 @@ class PortfolioScreen extends StatefulWidget {
 
 class _PortfolioScreenState extends State<PortfolioScreen> {
   String selectedPeriod = '1M';
+  List<double> chartData = [];
+  bool isLoadingChart = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  Future<void> _fetchHistory() async {
+    if (!mounted) return;
+    setState(() => isLoadingChart = true);
+    try {
+      final response = await ApiService().getPriceHistory('GOLD', selectedPeriod);
+      if (response.statusCode == 200) {
+        final List history = response.data['history'];
+        if (mounted) {
+          setState(() {
+            chartData = history.map<double>((e) => (e['price'] as num).toDouble()).toList();
+            isLoadingChart = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching history: $e');
+      if (mounted) {
+        setState(() {
+          chartData = [100, 105, 102, 110, 108, 115, 120];
+          isLoadingChart = false;
+        });
+      }
+    }
+  }
 
   void _checkKycAndNavigate(Widget screen) {
     if (AppState().isKycVerified) {
@@ -247,7 +281,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                     color: const Color(0xFF15803D),
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                  ),
+                    ),
                 ),
               ],
             ),
@@ -511,7 +545,10 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
                     children: ['1M', '3M', '6M', '1Y'].map((e) {
                       bool isSelected = e == selectedPeriod;
                       return GestureDetector(
-                        onTap: () => setState(() => selectedPeriod = e),
+                        onTap: () {
+                          setState(() => selectedPeriod = e);
+                          _fetchHistory();
+                        },
                         child: Container(
                           margin: const EdgeInsets.only(left: 6),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -538,13 +575,15 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           const SizedBox(height: 32),
           SizedBox(
             height: 180,
-            child: CustomPaint(
-              size: Size.infinite,
-              painter: SimpleLineChartPainter(
-                data: [100, 105, 102, 110, 108, 115, 120],
-                period: selectedPeriod,
-              ),
-            ),
+            child: isLoadingChart 
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBrownGold))
+              : CustomPaint(
+                  size: Size.infinite,
+                  painter: SimpleLineChartPainter(
+                    data: chartData,
+                    period: selectedPeriod,
+                  ),
+                ),
           ),
         ],
       ),

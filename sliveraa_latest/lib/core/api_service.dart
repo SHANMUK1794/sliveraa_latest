@@ -180,6 +180,21 @@ class ApiService {
     return await _dio.get('prices/live');
   }
 
+  Future<Response> getPriceHistory(String metal, String period) async {
+    return await _dio.get('prices/history', queryParameters: {
+      'metal': metal,
+      'period': period,
+    });
+  }
+
+  // Transaction Methods
+  Future<Response> withdraw(double amount, String metalType) async {
+    return await _dio.post('transactions/withdraw', data: {
+      'amount': amount,
+      'metalType': metalType,
+    });
+  }
+
   // Payment Methods
   Future<Response> createOrder(double amount, String assetType, double grams, String userId) async {
     return await _dio.post('payments/create-order', data: {

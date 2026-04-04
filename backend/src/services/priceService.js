@@ -79,6 +79,52 @@ class PriceService {
   }
 
   /**
+   * Get historical price data from Yahoo Finance
+   * @param {string} symbol - XAU or XAG
+   * @param {string} range - 1mo, 3mo, 6mo, 1y
+   * @returns {Promise<Array>} - Array of { date, price }
+   */
+  async getHistory(symbol = 'XAU', range = '1mo') {
+    const ticker = symbol === 'XAU' ? 'GC=F' : 'SI=F';
+    // Yahoo range mapping
+    const rangeMap = {
+      '1M': '1mo',
+      '3M': '3mo',
+      '6M': '6mo',
+      '1Y': '1y'
+    };
+    const yahooRange = rangeMap[range] || '1mo';
+    const interval = yahooRange === '1y' ? '1wk' : '1d';
+
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${yahooRange}&interval=${interval}`;
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        }
+      });
+
+      const result = response.data.chart.result[0];
+      const timestamps = result.timestamp;
+      const prices = result.indicators.quote[0].close;
+      const usdINR = await this.getUsdInr();
+
+      // Convert USD/Ounce to INR/Gram
+      // 1 Troy Ounce = 31.1034g
+      const divisor = 31.1034;
+      
+      return timestamps.map((ts, i) => ({
+        date: new Date(ts * 1000).toISOString(),
+        price: prices[i] ? (prices[i] * usdINR) / divisor : null
+      })).filter(item => item.price !== null);
+
+    } catch (error) {
+      console.error(`PriceService: History fetch error for ${symbol}:`, error.message);
+      return [];
+    }
+  }
+
+  /**
    * Get Live Price of Gold or Silver (Price per Gram)
    * @param {string} symbol - XAU (Gold) or XAG (Silver)
    * @returns {Promise<number>}
@@ -94,6 +140,19 @@ class PriceService {
   async calculatePrice(symbol, weightInGrams) {
     const pricePerGram = await this.getLivePrice(symbol);
     return pricePerGram * weightInGrams;
+  }
+
+  async getUsdInr() {
+    try {
+      const res = await axios.get('https://query1.finance.yahoo.com/v8/finance/chart/USDINR=X?interval=1d', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        }
+      });
+      return res.data.chart.result[0].meta.regularMarketPrice;
+    } catch (e) {
+      return 83.0; // Fallback
+    }
   }
 }
 
