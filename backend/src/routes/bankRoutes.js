@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bankController = require('../controllers/bankController');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middlewares/auth');
 
 // All bank routes require authentication
 router.use(authMiddleware);
