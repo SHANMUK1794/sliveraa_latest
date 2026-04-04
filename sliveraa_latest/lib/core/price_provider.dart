@@ -46,6 +46,9 @@ class PriceProvider with ChangeNotifier {
     double silverChange = (_silverPrice * 0.0002) * (random.nextDouble() > 0.5 ? 1 : -1);
     _silverPrice += silverChange;
     
+    // Sync with static helper for non-reactive screens
+    PriceData.updatePrices(_goldPrice, _silverPrice);
+    
     notifyListeners();
   }
 

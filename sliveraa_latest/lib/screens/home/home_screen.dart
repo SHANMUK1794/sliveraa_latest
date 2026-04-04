@@ -1013,7 +1013,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               image: tag == 'ARTICLE' 
                   ? const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1618409019667-c107590aa511?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80'),
+                      image: NetworkImage('https://images.unsplash.com/photo-1579621970795-87faff2f9050?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80'),
                       fit: BoxFit.cover,
                       colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
                     )
