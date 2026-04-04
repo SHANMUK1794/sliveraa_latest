@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:math' as math;
+import 'package:provider/provider.dart';
+import '../../core/price_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/price_data.dart';
 import '../../utils/extensions.dart';
@@ -16,28 +19,48 @@ class InvestmentOptionsScreen extends StatefulWidget {
 
 class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
   bool isSIP = true;
-  String frequency = 'Daily';
-  double amount = 50.0;
+  String frequency = 'Monthly';
+  double amount = 500.0; // Default min SIP for Gold
   
   // For Silver UI variation
   double quantity = 1.0; 
 
+  late TextEditingController _amountController;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController(text: amount.toInt().toString());
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: widget.isGold ? const Color(0xFFFEF9EC) : const Color(0xFF111827),
-      appBar: _buildAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(
-              height: 340,
-              child: _buildTopSection(),
+    return Consumer<PriceProvider>(
+      builder: (context, priceProvider, child) {
+        final currentPrice = widget.isGold ? priceProvider.goldPrice : priceProvider.silverPrice;
+        
+        return Scaffold(
+          backgroundColor: widget.isGold ? const Color(0xFFFEF9EC) : const Color(0xFF111827),
+          appBar: _buildAppBar(),
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 340,
+                  child: _buildTopSection(currentPrice),
+                ),
+                _buildSelectionPanel(currentPrice),
+              ],
             ),
-            _buildSelectionPanel(),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -76,118 +99,104 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     );
   }
 
-  Widget _buildTopSection() {
-    if (widget.isGold) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Projected returns in 5 years',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '₹${(amount * 1.29).toStringAsFixed(2)}', // Simulating a higher value
-              style: GoogleFonts.manrope(
-                fontSize: 48,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildProjectionStat('Investment:', '₹${amount.toStringAsFixed(2)}'),
-                Container(width: 1, height: 16, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
-                _buildProjectionStat('Earning:', '₹${(amount * 0.29).toStringAsFixed(2)} 🥳'),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _buildPerformanceLink('gold'),
-          ],
-        ),
-      );
+  Widget _buildTopSection(double currentPrice) {
+    final double annualRate = 0.14;
+    double projectedReturn;
+    double earnings;
+    double totalInvested;
+
+    if (isSIP) {
+      final double r;
+      final int n;
+      
+      if (frequency == 'Daily') {
+        r = annualRate / 365;
+        n = 365 * 5;
+        totalInvested = amount * 365 * 5;
+      } else if (frequency == 'Weekly') {
+        r = annualRate / 52;
+        n = 52 * 5;
+        totalInvested = amount * 52 * 5;
+      } else {
+        // Monthly
+        r = annualRate / 12;
+        n = 12 * 5;
+        totalInvested = amount * 12 * 5;
+      }
+      
+      projectedReturn = amount * ((math.pow(1 + r, n) - 1) / r) * (1 + r);
     } else {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Total Amount',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF475569), Color(0xFF1E293B)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '₹${(PriceData.silverPrice * quantity).toLocaleString()}',
-                    style: GoogleFonts.manrope(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'for $quantity gm',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: Colors.white60,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildPerformanceLink('silver'),
-          ],
-        ),
-      );
+      // One-Time Lumpsum Formula: P * (1 + r)^n
+      totalInvested = quantity * currentPrice;
+      projectedReturn = totalInvested * math.pow(1 + annualRate, 5);
     }
+
+    earnings = projectedReturn - totalInvested;
+
+    final textColor = widget.isGold ? const Color(0xFF0F172A) : Colors.white;
+    final subColor = widget.isGold ? const Color(0xFF64748B) : Colors.white70;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            isSIP ? 'Projected returns in 5 years (SIP)' : 'Projected returns in 5 years',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: subColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '₹${projectedReturn.toLocaleString(decimals: 2)}',
+                style: GoogleFonts.manrope(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(child: _buildProjectionStat('Investment:', '₹${totalInvested.toLocaleString(decimals: 0)}', widget.isGold)),
+              Container(width: 1, height: 16, color: Colors.grey.withOpacity(0.3), margin: const EdgeInsets.symmetric(horizontal: 12)),
+              Flexible(child: _buildProjectionStat('Earning:', '₹${earnings.toLocaleString(decimals: 0)} 🥳', widget.isGold)),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _buildPerformanceLink(widget.isGold ? 'gold' : 'silver'),
+        ],
+      ),
+    );
   }
 
-  Widget _buildProjectionStat(String label, String val) {
-    return RichText(
-      text: TextSpan(
-        text: '$label ',
-        style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
-        children: [
-          TextSpan(
-            text: val,
-            style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF0F172A), fontWeight: FontWeight.w800),
-          ),
-        ],
+  Widget _buildProjectionStat(String label, String val, bool isGold) {
+    final labelColor = isGold ? const Color(0xFF64748B) : Colors.white70;
+    final valColor = isGold ? const Color(0xFF0F172A) : Colors.white;
+    
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: RichText(
+        text: TextSpan(
+          text: '$label ',
+          style: GoogleFonts.inter(fontSize: 13, color: labelColor, fontWeight: FontWeight.w500),
+          children: [
+            TextSpan(
+              text: val,
+              style: GoogleFonts.inter(fontSize: 13, color: valColor, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -215,7 +224,7 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     );
   }
 
-  Widget _buildSelectionPanel() {
+  Widget _buildSelectionPanel(double currentPrice) {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -226,10 +235,27 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         ),
       ),
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-      child: Column(
-        children: [
-          // Toggle
-          Container(
+            child: Column(
+              children: [
+                // Live Price Badge in Selection Panel (Subtle)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live ${widget.isGold ? "Gold" : "Silver"} Price: ₹${currentPrice.toLocaleString()}/gm',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Toggle
+                Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: const Color(0xFFF1F5F9),
@@ -265,8 +291,8 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
           const SizedBox(height: 12),
           Text(
             isSIP 
-              ? 'Amount payable: ₹${amount.toLocaleString()}' 
-              : 'Amount payable: ₹${((widget.isGold ? PriceData.goldPrice : PriceData.silverPrice) * quantity * 1.03).toLocaleString()}',
+              ? 'Amount payable: ₹${amount.toLocaleString(decimals: 0)}' 
+              : 'Amount payable: ₹${(currentPrice * quantity * 1.03).toLocaleString(decimals: 0)}',
             style: GoogleFonts.inter(
               fontSize: 14,
               color: const Color(0xFF94A3B8),
@@ -276,14 +302,22 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
           
           const SizedBox(height: 32),
           
-          // Quick Selection
+  // Quick Selection
           Row(
             children: [
-              Expanded(child: _buildQuickPill('2 gm', () => _selectGrams(2))),
-              const SizedBox(width: 8),
-              Expanded(child: _buildQuickPill('5 gm', () => _selectGrams(5))),
-              const SizedBox(width: 8),
-              Expanded(child: _buildQuickPill('10 gm', () => _selectGrams(10))),
+              if (isSIP) ...[
+                Expanded(child: _buildQuickPill('₹500', () => _selectAmount(500))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildQuickPill('₹1000', () => _selectAmount(1000))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildQuickPill('₹2000', () => _selectAmount(2000))),
+              ] else ...[
+                Expanded(child: _buildQuickPill('2 gm', () => _selectGrams(2))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildQuickPill('5 gm', () => _selectGrams(5))),
+                const SizedBox(width: 8),
+                Expanded(child: _buildQuickPill('10 gm', () => _selectGrams(10))),
+              ],
             ],
           ),
           
@@ -295,18 +329,21 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
             height: 60,
             child: ElevatedButton(
               onPressed: () {
-                final double currentPrice = widget.isGold ? PriceData.goldPrice : PriceData.silverPrice;
                 double totalAmount;
                 double totalGrams;
 
                 if (isSIP) {
                   // User entered AMOUNT (Inclusive of GST)
-                  totalAmount = amount;
-                  totalGrams = (amount / 1.03) / currentPrice;
+                  totalAmount = double.tryParse(_amountController.text) ?? amount;
+                  if (totalAmount < 500) {
+                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Minimum SIP amount is ₹500')));
+                     return;
+                  }
+                  totalGrams = (totalAmount / 1.03) / currentPrice;
                 } else {
                   // User selected GRAMS (Exclusive of GST)
-                  totalGrams = quantity;
-                  totalAmount = (quantity * currentPrice) * 1.03;
+                  totalGrams = double.tryParse(_amountController.text) ?? quantity;
+                  totalAmount = (totalGrams * currentPrice) * 1.03;
                 }
                 
                 Navigator.push(
@@ -316,6 +353,7 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
                       isGold: widget.isGold, 
                       amount: totalAmount,
                       grams: totalGrams,
+                      isSIP: isSIP,
                     ),
                   ),
                 );
@@ -397,27 +435,51 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         _buildRoundButton(Icons.remove, () {
           setState(() {
             if (isSIP) {
-              if (amount > 50) amount -= 50;
+              if (amount > 500) {
+                amount -= 100;
+                _amountController.text = amount.toInt().toString();
+              }
             } else {
-              if (quantity > 1) quantity -= 1;
+              if (quantity > 1) {
+                quantity -= 1;
+                _amountController.text = quantity.toStringAsFixed(2);
+              }
             }
           });
         }),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '₹',
+                isSIP ? '₹' : 'gm',
                 style: GoogleFonts.manrope(fontSize: 24, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
               ),
               const SizedBox(height: 4),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    isSIP ? amount.toStringAsFixed(0) : (quantity * (widget.isGold ? PriceData.goldPrice : PriceData.silverPrice)).toStringAsFixed(0),
-                    style: GoogleFonts.manrope(fontSize: 56, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+              SizedBox(
+                width: 140,
+                child: TextField(
+                  controller: _amountController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    setState(() {
+                      double? v = double.tryParse(val);
+                      if (v != null) {
+                        if (isSIP) {
+                          amount = v;
+                        } else {
+                          quantity = v;
+                        }
+                      }
+                    });
+                  },
+                  style: GoogleFonts.manrope(fontSize: 48, fontWeight: FontWeight.w800, color: const Color(0xFF0F172A)),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
@@ -427,9 +489,11 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         _buildRoundButton(Icons.add, () {
           setState(() {
             if (isSIP) {
-              amount += 50;
+              amount += 100;
+              _amountController.text = amount.toInt().toString();
             } else {
               quantity += 1;
+              _amountController.text = quantity.toStringAsFixed(2);
             }
           });
         }),
@@ -480,6 +544,15 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     setState(() {
       isSIP = false;
       quantity = g;
+      _amountController.text = quantity.toStringAsFixed(0);
+    });
+  }
+
+  void _selectAmount(double a) {
+    setState(() {
+      isSIP = true;
+      amount = a;
+      _amountController.text = amount.toInt().toString();
     });
   }
 

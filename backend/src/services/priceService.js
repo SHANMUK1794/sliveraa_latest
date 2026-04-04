@@ -8,26 +8,37 @@ class PriceService {
     this.apiKey = process.env.PRICE_API_KEY;
     this.baseUrl = 'https://www.goldapi.io/api';
     this.cache = {
-      XAU: { price: 6200, updatedAt: 0 }, // Initial fallbacks per gram
-      XAG: { price: 92, updatedAt: 0 },
+      XAU: { price: 0, updatedAt: 0 },
+      XAG: { price: 0, updatedAt: 0 },
     };
-    this.cacheDuration = 1 * 60 * 1000; // 1 minute background refresh
+    this.cacheDuration = 30 * 1000; // 30 second background refresh
   }
 
   /**
    * Start the background auto-update process
-   * Updates every minute without user interaction
+   * Updates every 30 seconds to stay in sync with frontend
    */
   async initAutoUpdate() {
-    console.log('PriceService: Initializing background price automation (Delhi)...');
+    console.log('PriceService: Initializing dynamic price automation (No Hardcoding)...');
     
-    // Initial fetch
+    // 1. Try to populate initial cache from DB
+    try {
+      const dbGold = await prisma.metalPrice.findUnique({ where: { metalType: 'GOLD' } });
+      const dbSilver = await prisma.metalPrice.findUnique({ where: { metalType: 'SILVER' } });
+      
+      if (dbGold) this.cache.XAU = { price: dbGold.price, updatedAt: dbGold.updatedAt.getTime() };
+      if (dbSilver) this.cache.XAG = { price: dbSilver.price, updatedAt: dbSilver.updatedAt.getTime() };
+    } catch (e) {
+      console.warn('PriceService: Could not load initial prices from DB');
+    }
+
+    // 2. Immediate fetch from web
     await this.refreshPricesFromSource();
 
-    // Set interval for every 60 seconds
+    // 3. Set interval for every 30 seconds
     setInterval(async () => {
       await this.refreshPricesFromSource();
-    }, 60 * 1000);
+    }, 30 * 1000);
   }
 
   async refreshPricesFromSource() {

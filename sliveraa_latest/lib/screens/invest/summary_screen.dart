@@ -11,12 +11,14 @@ class SummaryScreen extends StatefulWidget {
   final bool isGold;
   final double amount;
   final double grams;
+  final bool isSIP;
 
   const SummaryScreen({
     super.key, 
     required this.isGold, 
     required this.amount, 
-    required this.grams
+    required this.grams,
+    this.isSIP = false,
   });
 
   @override
@@ -30,29 +32,52 @@ class _SummaryScreenState extends State<SummaryScreen> {
     setState(() => _isLoading = true);
     try {
       final state = context.read<AppState>();
-      final response = await ApiService().createOrder(
-        widget.amount, // Total amount (Inclusive of 3% GST)
-        widget.isGold ? 'GOLD' : 'SILVER',
-        widget.grams,
-        state.userId,
-      );
+      
+      if (widget.isSIP) {
+        // Handle SIP Plan Creation
+        final response = await ApiService().createSavingsPlan(
+          widget.amount,
+          widget.isGold ? 'GOLD' : 'SILVER',
+        );
 
-      if (mounted) {
-        if (response.data['success'] == true) {
-          final orderId = response.data['orderId'];
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => PaymentScreen(
-              amount: widget.amount,
-              orderId: orderId,
-              isGold: widget.isGold,
-              grams: widget.grams,
-            )),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response.data['message'] ?? 'Failed to create order')),
-          );
+        if (mounted) {
+          if (response.data['success'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('SIP Plan started successfully!')),
+            );
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.data['message'] ?? 'Failed to start SIP')),
+            );
+          }
+        }
+      } else {
+        // Handle One-Time Order
+        final response = await ApiService().createOrder(
+          widget.amount, // Total amount (Inclusive of 3% GST)
+          widget.isGold ? 'GOLD' : 'SILVER',
+          widget.grams,
+          state.userId,
+        );
+
+        if (mounted) {
+          if (response.data['success'] == true) {
+            final orderId = response.data['orderId'];
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PaymentScreen(
+                amount: widget.amount,
+                orderId: orderId,
+                isGold: widget.isGold,
+                grams: widget.grams,
+              )),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.data['message'] ?? 'Failed to create order')),
+            );
+          }
         }
       }
     } catch (e) {
@@ -127,7 +152,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} quantity', '${widget.grams.toStringAsFixed(widget.isGold ? 3 : 1)}gm'),
+                  _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} quantity', '${widget.grams.toStringAsFixed(4)}gm'),
                   const SizedBox(height: 24),
                   _buildRow('${metal.characters.first.toUpperCase() + metal.substring(1)} value', '₹${baseValue.toLocaleString()}'),
                   const SizedBox(height: 24),

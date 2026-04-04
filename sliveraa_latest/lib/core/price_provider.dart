@@ -58,8 +58,8 @@ class PriceProvider with ChangeNotifier {
     try {
       final response = await _apiService.getLivePrices();
       if (response.statusCode == 200) {
-        _goldPrice = response.data['gold']['price'].toDouble();
-        _silverPrice = response.data['silver']['price'].toDouble();
+        _goldPrice = (response.data['gold']['price'] ?? 6200.0).toDouble();
+        _silverPrice = (response.data['silver']['price'] ?? 92.0).toDouble();
         // Synchronize static helper for non-reactive components
         PriceData.updatePrices(_goldPrice, _silverPrice);
       }

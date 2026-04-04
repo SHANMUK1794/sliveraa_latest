@@ -190,6 +190,15 @@ class ApiService {
     });
   }
 
+  // --- SIP (Savings) Plans ---
+  Future<Response> createSavingsPlan(double amount, String metalType) async {
+    return await _dio.post('invest/savings/plans', data: {
+      'amount': amount,
+      'metalType': metalType,
+      'frequency': 'MONTHLY',
+    });
+  }
+
   Future<Response> verifyPayment(Map<String, dynamic> data) async {
     return await _dio.post('payments/verify-payment', data: data);
   }
