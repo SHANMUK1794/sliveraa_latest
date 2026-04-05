@@ -396,18 +396,16 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
+          color: isSelected ? (widget.isGold ? const Color(0xFFB08C65) : const Color(0xFF1E293B)) : Colors.white,
           borderRadius: BorderRadius.circular(30),
-          border: isSelected 
-              ? Border.all(color: const Color(0xFF0F172A), width: 1.5)
-              : Border.all(color: const Color(0xFFF1F5F9)),
+          border: Border.all(color: isSelected ? Colors.transparent : const Color(0xFFF1F5F9)),
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
             fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : const Color(0xFF1E293B),
           ),
         ),
       ),
@@ -526,35 +524,6 @@ class _InvestmentOptionsScreenState extends State<InvestmentOptionsScreen> {
     );
   }
 
-
-  Widget _buildFreqPill(String label) {
-    bool isSelected = frequency == label;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          frequency = label;
-          // Recalculate or update controller if needed
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: isSelected ? (widget.isGold ? const Color(0xFFB08C65) : const Color(0xFF1E293B)) : Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: isSelected ? Colors.transparent : const Color(0xFFF1F5F9)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: isSelected ? Colors.white : const Color(0xFF1E293B),
-          ),
-        ),
-      ),
-    );
-  }
 
   void _selectAmount(double a) {
     setState(() {
