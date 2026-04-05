@@ -43,7 +43,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
   bool isGoldSelected = true;
   double get goldBalance => AppState().goldGrams;
@@ -53,8 +53,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool showGoldPrice = true;
   late Timer _priceTimer;
   late AnimationController _shineController;
-  late AnimationController _secondaryShineController;
-  Offset _tiltOffset = Offset.zero;
 
   @override
   void initState() {
@@ -62,10 +60,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _shineController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
-    )..repeat();
-    _secondaryShineController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
     )..repeat();
     _startPriceTimer();
     _fetchInitialData();
@@ -99,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _priceTimer.cancel();
     _shineController.dispose();
-    _secondaryShineController.dispose();
     super.dispose();
   }
 
@@ -421,290 +414,133 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ? (goldBalance * priceProvider.goldPrice) 
         : (silverBalance * priceProvider.silverPrice);
     
-    return ListenableBuilder(
-      listenable: Listenable.merge([_shineController, _secondaryShineController]),
+    return AnimatedBuilder(
+      animation: _shineController,
       builder: (context, child) {
-        return MouseRegion(
-          onHover: (event) {
-            final RenderBox box = context.findRenderObject() as RenderBox;
-            final center = box.size.center(Offset.zero);
-            setState(() {
-              _tiltOffset = Offset(
-                (event.localPosition.dx - center.dx) / center.dx,
-                (event.localPosition.dy - center.dy) / center.dy,
-              );
-            });
-          },
-          onExit: (_) => setState(() => _tiltOffset = Offset.zero),
-          child: GestureDetector(
-            onPanUpdate: (details) {
-              final RenderBox box = context.findRenderObject() as RenderBox;
-              final center = box.size.center(Offset.zero);
-              setState(() {
-                _tiltOffset = Offset(
-                  (details.localPosition.dx - center.dx) / center.dx,
-                  (details.localPosition.dy - center.dy) / center.dy,
-                );
-              });
-            },
-            onPanEnd: (_) => setState(() => _tiltOffset = Offset.zero),
-            child: Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.001) // perspective
-                ..rotateX(-0.15 * _tiltOffset.dy)
-                ..rotateY(0.15 * _tiltOffset.dx),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 500),
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isGoldSelected 
-                      ? [
-                          const Color(0xFFBF953F), 
-                          const Color(0xFFFCF6BA), 
-                          const Color(0xFFB38728), 
-                          const Color(0xFFFBF5B7), 
-                          const Color(0xFFAA771C)
-                        ] 
-                      : [
-                          const Color(0xFFBDBBBE), 
-                          const Color(0xFF9D9D9C), 
-                          const Color(0xFF70706F), 
-                          const Color(0xFFDBDBDB), 
-                          const Color(0xFFBDBBBE)
-                        ], 
-                    stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+        final cardColor = isGoldSelected ? const Color(0xFFA68054) : const Color(0xFF64748B);
+        final accentColor = isGoldSelected ? const Color(0xFF8E6D45) : const Color(0xFF475569);
+        
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: cardColor.withValues(alpha: 0.3),
+                blurRadius: 30,
+                spreadRadius: 2,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Toggle Buttons (Transparent Minimalist)
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildToggleButton('Gold', isGoldSelected, const Color(0xFFA68054), () => setState(() => isGoldSelected = true)),
+                        _buildToggleButton('Silver', !isGoldSelected, const Color(0xFF64748B), () => setState(() => isGoldSelected = false)),
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (isGoldSelected ? const Color(0xFF9A7B4F) : const Color(0xFF71717A))
-                          .withValues(alpha: 0.4 + (0.1 * math.sin(_shineController.value * math.pi * 2))),
-                      blurRadius: 35,
-                      spreadRadius: 2,
-                      offset: const Offset(0, 15),
-                    ),
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.3),
-                      blurRadius: 0,
-                      offset: Offset(-2 + (_tiltOffset.dx * 10), -2 + (_tiltOffset.dy * 10)),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    children: [
-                      // Zenith Particle & Grain System
-                      Positioned.fill(
-                        child: Opacity(
-                          opacity: 0.08,
-                          child: CustomPaint(painter: _ZenithPainter(isGoldSelected: isGoldSelected)),
-                        ),
-                      ),
-                      // Secondary Holographic Fast Beam
-                      Positioned.fill(
-                        child: FractionallySizedBox(
-                          alignment: Alignment(lerpDouble(2.5, -2.5, _secondaryShineController.value)!, 0),
-                          widthFactor: 0.2,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topRight,
-                                end: Alignment.bottomLeft,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.0),
-                                  Colors.white.withValues(alpha: 0.25),
-                                  Colors.white.withValues(alpha: 0.0),
-                                ],
-                                stops: const [0.4, 0.5, 0.6],
-                              ),
-                            ),
+                  _buildLiveBadge(),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Balance',
+                          style: GoogleFonts.inter(
+                            color: Colors.white.withValues(alpha: 0.8), 
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                      // Primary Signature Shine Streak
-                      Positioned.fill(
-                        child: FractionallySizedBox(
-                          alignment: Alignment(lerpDouble(-2.5, 2.5, _shineController.value)!, 0),
-                          widthFactor: 0.5,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.0),
-                                  Colors.white.withValues(alpha: 0.4),
-                                  Colors.white.withValues(alpha: 0.0),
-                                ],
-                                stops: const [0.35, 0.5, 0.65],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Glass Sheen Overlay
-                      Positioned(
-                        top: -40,
-                        right: -30,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                Colors.white.withValues(alpha: 0.1),
-                                Colors.white.withValues(alpha: 0.0),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Toggle Buttons (Zenith Glass)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        _buildToggleButton('Gold', isGoldSelected, () => setState(() => isGoldSelected = true)),
-                                        _buildToggleButton('Silver', !isGoldSelected, () => setState(() => isGoldSelected = false)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              _buildLiveBadge(),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
+                        const SizedBox(height: 8),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'ZENITH PORTFOLIO',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.black.withValues(alpha: 0.6), 
-                                        fontSize: 8, 
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.centerLeft,
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
-                                        children: [
-                                          Text(
-                                            '₹',
-                                            style: GoogleFonts.spectral( // Elegant Serif Contrast
-                                              color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
-                                              fontSize: 28, 
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            formatRupee(portfolioValue).replaceAll('₹', ''),
-                                            style: GoogleFonts.manrope(
-                                              color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
-                                              fontSize: 38, 
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: -1.8,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'HOLDING: ',
-                                          style: GoogleFonts.inter(
-                                            color: Colors.black.withValues(alpha: 0.5), 
-                                            fontSize: 9, 
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${(isGoldSelected ? goldBalance : silverBalance).toStringAsFixed(3)} ${isGoldSelected ? 'gm' : 'gm'}',
-                                          style: GoogleFonts.manrope(
-                                            color: isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
-                                            fontSize: 12, 
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                              Text(
+                                '₹',
+                                style: GoogleFonts.spectral(
+                                  color: Colors.white, 
+                                  fontSize: 32, 
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                formatRupee(portfolioValue).replaceAll('₹', ''),
+                                style: GoogleFonts.manrope(
+                                  color: Colors.white, 
+                                  fontSize: 48, 
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -1.0,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
-                                  child: _buildCardButton(
-                                    'Withdraw', 
-                                    Colors.black.withValues(alpha: 0.1), 
-                                    isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
-                                    Icons.account_balance_wallet_outlined,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: isGoldSelected)),
-                                  child: _buildCardButton(
-                                    'Start Saving', 
-                                    isGoldSelected ? const Color(0xFF422006) : const Color(0xFF18181B), 
-                                    Colors.white, 
-                                    Icons.auto_graph_rounded,
-                                    isPrimary: true,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
+                      child: _buildCardButton(
+                        'Withdraw', 
+                        Colors.white.withValues(alpha: 0.2), 
+                        Colors.white, 
+                        Icons.account_balance_wallet_rounded,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: isGoldSelected)),
+                      child: _buildCardButton(
+                        'Start Saving', 
+                        Colors.white, 
+                        cardColor, 
+                        Icons.trending_up_rounded,
+                        isPrimary: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -742,7 +578,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return const SizedBox.shrink(); // Removed per user request to compact card
   }
 
-  Widget _buildToggleButton(String label, bool isSelected, VoidCallback onTap) {
+  Widget _buildToggleButton(String label, bool isSelected, Color activeColor, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -759,8 +595,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           label,
           style: GoogleFonts.inter(
             color: isSelected 
-              ? (isGoldSelected ? const Color(0xFF422006) : Colors.black) 
-              : (isGoldSelected ? const Color(0xFF422006).withValues(alpha: 0.5) : Colors.black.withValues(alpha: 0.5)),
+              ? activeColor 
+              : Colors.white.withValues(alpha: 0.6),
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
@@ -870,7 +706,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFFC8A27B) : const Color(0xFFF1F5F9),
+                            color: isSelected ? (isGoldSelected ? const Color(0xFFC8A27B) : const Color(0xFF64748B)) : const Color(0xFFF1F5F9),
                             width: 1.5,
                           ),
                         ),
@@ -960,8 +796,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Container(
       width: 44,
       height: 44,
-      decoration: const BoxDecoration(
-        color: Color(0xFFC6A17A),
+      decoration: BoxDecoration(
+        color: isGoldSelected ? const Color(0xFFC6A17A) : const Color(0xFF64748B),
         shape: BoxShape.circle,
       ),
       child: const Icon(Icons.keyboard_double_arrow_right_rounded, color: Colors.white, size: 20),

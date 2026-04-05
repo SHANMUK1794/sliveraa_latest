@@ -17,7 +17,15 @@ class PaymentService {
   }
 
   get isAvailable() {
-    return this.razorpay !== null || process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_MOCK');
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    
+    // Mock Mode if specifically requested OR if keys are left as default placeholders
+    const isMock = keyId?.startsWith('rzp_test_MOCK') || 
+                   keyId === 'rzp_test_...' || 
+                   keySecret === 'your_razorpay_secret';
+                   
+    return this.razorpay !== null || isMock;
   }
 
   /**

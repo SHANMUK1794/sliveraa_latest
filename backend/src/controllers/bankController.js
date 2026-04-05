@@ -32,10 +32,16 @@ class BankController {
 
       res.status(201).json(bankAccount);
     } catch (error) {
-      console.error('Add Bank Account Error Details:', error);
+      console.error('--- BANK ADDITION ERROR REPORT ---');
+      console.error('User ID:', userId);
+      console.error('Payload:', { bankName, accountNumber: '****' + (accountNumber?.slice(-4) || ''), ifsc, accountHolder });
+      console.error('Prisma Error:', error);
+      console.error('---------------------------------');
+      
       res.status(500).json({ 
         error: 'Database Error', 
-        message: error.message || 'Failed to add bank account' 
+        message: 'A server-side database error occurred. Please ensure migrations are applied.',
+        details: error.message
       });
     }
   }

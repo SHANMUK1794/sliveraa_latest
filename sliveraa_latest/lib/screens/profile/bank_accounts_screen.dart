@@ -12,12 +12,8 @@ class BankAccountsScreen extends StatefulWidget {
 }
 
 class _BankAccountsScreenState extends State<BankAccountsScreen> {
-  final TextEditingController _bankNameController = TextEditingController();
-  final TextEditingController _accountNumberController = TextEditingController();
-  final TextEditingController _confirmAccountController = TextEditingController();
-  final TextEditingController _ifscController = TextEditingController();
-  final TextEditingController _holderNameController = TextEditingController();
   final FocusNode _bankNameFocus = FocusNode();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -341,16 +337,29 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
     );
   }
 
+  void _showSnackBar(String message, {bool isError = true}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red : const Color(0xFF059669),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
       height: 64,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFCCAC8B), Color(0xFFB48C65)],
+        gradient: LinearGradient(
+          colors: _isLoading 
+            ? [const Color(0xFFD1D5DB), const Color(0xFF9CA3AF)] 
+            : [const Color(0xFFCCAC8B), const Color(0xFFB48C65)],
         ),
-        boxShadow: [
+        boxShadow: _isLoading ? null : [
           BoxShadow(
             color: const Color(0xFFB48C65).withValues(alpha: 0.3),
             blurRadius: 15,
@@ -359,34 +368,52 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () async {
-          if (_accountNumberController.text.isNotEmpty && _ifscController.text.isNotEmpty) {
-            try {
-              // 1. Send to Backend
-              await ApiService().addBankAccount({
-                'bankName': _bankNameController.text,
-                'accountHolder': _holderNameController.text,
-                'accountNumber': _accountNumberController.text,
-                'ifsc': _ifscController.text,
-              });
+        onPressed: _isLoading ? null : () async {
+          final bankName = _bankNameController.text.trim();
+          final accNum = _accountNumberController.text.trim();
+          final confAccNum = _confirmAccountController.text.trim();
+          final ifsc = _ifscController.text.trim();
+          final holder = _holderNameController.text.trim();
 
-              // 2. Synchronize AppState
-              await AppState().fetchBankAccounts();
+          // Validation
+          if (bankName.isEmpty || accNum.isEmpty || ifsc.isEmpty || holder.isEmpty) {
+            _showSnackBar('Please fill in all bank details.');
+            return;
+          }
 
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Bank details updated successfully!'),
-                  backgroundColor: Color(0xFF059669),
-                ));
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text('Failed to save: $e'),
-                  backgroundColor: Colors.red,
-                ));
-              }
-            }
+          if (accNum != confAccNum) {
+            _showSnackBar('Account numbers do not match.');
+            return;
+          }
+
+          if (accNum.length < 8) {
+            _showSnackBar('Please enter a valid account number.');
+            return;
+          }
+
+          setState(() => _isLoading = true);
+          try {
+            // 1. Send to Backend
+            await ApiService().addBankAccount({
+              'bankName': bankName,
+              'accountHolder': holder,
+              'accountNumber': accNum,
+              'ifsc': ifsc,
+            });
+
+            // 2. Synchronize AppState
+            await AppState().fetchBankAccounts();
+
+            _showSnackBar('Bank details updated successfully!', isError: false);
+            if (mounted) Navigator.pop(context);
+          } catch (e) {
+             String errorMessage = 'Failed to save details. Please try again.';
+             if (e is DioException) {
+               errorMessage = e.response?.data?['message'] ?? e.message ?? errorMessage;
+             }
+            _showSnackBar(errorMessage);
+          } finally {
+            if (mounted) setState(() => _isLoading = false);
           }
         },
         style: ElevatedButton.styleFrom(
@@ -394,21 +421,27 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Save Bank Details',
-              style: GoogleFonts.manrope(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
+        child: _isLoading 
+          ? const SizedBox(
+              width: 24, 
+              height: 24, 
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  AppState().bankAccounts.isEmpty ? 'Save Bank Details' : 'Update Bank Details',
+                  style: GoogleFonts.manrope(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 20),
+              ],
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 20),
-          ],
-        ),
       ),
     );
   }
