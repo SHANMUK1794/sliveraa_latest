@@ -61,12 +61,27 @@ app.get('/health', async (req, res) => {
 
 // Error handling middleware
 const priceService = require('./src/services/priceService');
+const cron = require('node-cron');
+const savingsController = require('./src/controllers/savingsController');
 
 app.listen(PORT, () => {
   console.log(`🚀 Silvra Backend running on http://localhost:${PORT}`);
   
-  // Start background price automation (Delhi Gold/Silver Scraper)
+  // 1. Start background price automation (Delhi Gold/Silver Scraper)
   priceService.initAutoUpdate().catch(err => {
     console.error('Failed to start price automation:', err.message);
   });
+
+  // 2. Schedule SIP Processing (Runs at the start of every hour)
+  // Logic: 0 * * * * (Minutes Hour Day Month DayOfWeek)
+  cron.schedule('0 * * * *', async () => {
+    console.log('--- CRON: Starting Automated SIP Processing ---');
+    try {
+      const results = await savingsController._processDuesInternal();
+      console.log('--- CRON: SIP Processing Results:', JSON.stringify(results));
+    } catch (err) {
+      console.error('--- CRON: SIP Processing Critical Failure:', err.message);
+    }
+  });
+  console.log('⏰ SIP Scheduler: Active (Running every hour)');
 });

@@ -192,6 +192,7 @@ model Transaction {
   status          TransactionStatus @default(PENDING)
   razorpayOrderId String?           @unique
   razorpayPaymentId String?         @unique
+  savingsPlanId   String?           // Link to SIP plan if this is the first payment
   
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

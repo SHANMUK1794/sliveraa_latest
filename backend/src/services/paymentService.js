@@ -20,10 +20,15 @@ class PaymentService {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     
-    // Mock Mode if specifically requested OR if keys are left as default placeholders
+    // Mock Mode logic
     const isMock = keyId?.startsWith('rzp_test_MOCK') || 
                    keyId === 'rzp_test_...' || 
                    keySecret === 'your_razorpay_secret';
+    
+    // SECURITY: Disable mock mode if we are in production
+    if (process.env.NODE_ENV === 'production') {
+      return this.razorpay !== null;
+    }
                    
     return this.razorpay !== null || isMock;
   }

@@ -69,7 +69,7 @@ const deliveryRequestSchema = z.object({
 const savingsPlanSchema = z.object({
   metalType: z.enum(['GOLD', 'SILVER']),
   amount: z.number().min(500, "Minimum SIP amount is ₹500"),
-  frequency: z.enum(['MONTHLY']).default('MONTHLY')
+  frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).default('MONTHLY')
 });
 
 // Payment Schemas

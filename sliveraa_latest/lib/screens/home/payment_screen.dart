@@ -10,6 +10,7 @@ import '../invest/payment_status_screen.dart';
 class PaymentScreen extends StatefulWidget {
   final double amount;
   final String orderId;
+  final String? razorpayKey; 
   final bool isGold;
   final double grams;
   final String? method; // Pre-selected method (card, upi, netbanking)
@@ -18,6 +19,7 @@ class PaymentScreen extends StatefulWidget {
     super.key, 
     required this.amount,
     required this.orderId,
+    this.razorpayKey,
     required this.isGold,
     required this.grams,
     this.method,
@@ -48,7 +50,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _startPayment() {
     final state = context.read<AppState>();
     var options = {
-      'key': 'rzp_test_MOCK_KEY', // Triggers Mock Mode in backend
+      'key': widget.razorpayKey ?? 'rzp_test_MOCK_KEY', // Use dynamic key from backend
       'amount': (widget.amount * 100).toInt(), // Amount in paise
       'name': 'Silvra',
       'order_id': widget.orderId, // Real order ID from backend

@@ -54,6 +54,7 @@ class PaymentController {
         success: true,
         message: 'Order created',
         orderId: order.id,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID, // Return this for the frontend
         amount: order.amount,
         currency: order.currency,
         transactionId: transaction.id
@@ -132,6 +133,15 @@ class PaymentController {
             }
             // Award Rewards
             await rewardService.creditPurchaseReward(userId, transaction.amount);
+
+            // Activate SIP if this was the first payment
+            if (transaction.savingsPlanId) {
+              await tx.savingsPlan.update({
+                where: { id: transaction.savingsPlanId },
+                data: { status: 'ACTIVE' }
+              });
+              await notificationService.notify(userId, 'SIP Activated', `Your ${transaction.metalType} SIP plan has been successfully activated.`, 'SYSTEM');
+            }
           }
         });
 

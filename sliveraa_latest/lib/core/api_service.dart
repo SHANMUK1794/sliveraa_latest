@@ -206,11 +206,11 @@ class ApiService {
   }
 
   // --- SIP (Savings) Plans ---
-  Future<Response> createSavingsPlan(double amount, String metalType) async {
+  Future<Response> createSavingsPlan(double amount, String metalType, String frequency) async {
     return await _dio.post('invest/savings/plans', data: {
       'amount': amount,
       'metalType': metalType,
-      'frequency': 'MONTHLY',
+      'frequency': frequency,
     });
   }
 

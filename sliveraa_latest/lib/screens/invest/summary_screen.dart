@@ -12,6 +12,7 @@ class SummaryScreen extends StatefulWidget {
   final double amount;
   final double grams;
   final bool isSIP;
+  final String frequency; // Added to store frequency
 
   const SummaryScreen({
     super.key, 
@@ -19,6 +20,7 @@ class SummaryScreen extends StatefulWidget {
     required this.amount, 
     required this.grams,
     this.isSIP = false,
+    this.frequency = 'MONTHLY',
   });
 
   @override
@@ -38,14 +40,25 @@ class _SummaryScreenState extends State<SummaryScreen> {
         final response = await ApiService().createSavingsPlan(
           widget.amount,
           widget.isGold ? 'GOLD' : 'SILVER',
+          widget.frequency.toUpperCase(), // Pass the selected frequency
         );
 
         if (mounted) {
           if (response.data['success'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('SIP Plan started successfully!')),
+            final orderId = response.data['orderId'];
+            final razorpayKeyId = response.data['razorpayKeyId'];
+            final amount = response.data['amount'].toDouble();
+            
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => PaymentScreen(
+                amount: amount,
+                orderId: orderId,
+                razorpayKey: razorpayKeyId,
+                isGold: widget.isGold,
+                grams: widget.grams,
+              )),
             );
-            Navigator.of(context).popUntil((route) => route.isFirst);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(response.data['message'] ?? 'Failed to start SIP')),
@@ -63,12 +76,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
         if (mounted) {
           if (response.data['success'] == true) {
-            final orderId = response.data['orderId'];
+            final orderId = response.data['orderId']?.toString();
+            final razorpayKeyId = response.data['razorpayKeyId']?.toString();
+            
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PaymentScreen(
                 amount: widget.amount,
-                orderId: orderId,
+                orderId: orderId ?? '',
+                razorpayKey: razorpayKeyId,
                 isGold: widget.isGold,
                 grams: widget.grams,
               )),
