@@ -38,9 +38,14 @@ class BankController {
       console.error('Prisma Error:', error);
       console.error('---------------------------------');
       
+      let message = 'A server-side database error occurred.';
+      if (error.message.includes('BankAccount') || error.message.includes('not found') || error.message.includes('relation "BankAccount" does not exist')) {
+        message = 'The BankAccount table is missing. Please run "npx prisma db push" in the backend folder.';
+      }
+      
       res.status(500).json({ 
         error: 'Database Error', 
-        message: 'A server-side database error occurred. Please ensure migrations are applied.',
+        message: message,
         details: error.message
       });
     }

@@ -40,8 +40,23 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/support', supportRoutes);
 
 // Health Check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Silvra Backend is running' });
+app.get('/health', async (req, res) => {
+  try {
+    const dbCheck = await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'OK', 
+      message: 'Silvra Backend is running', 
+      database: 'Connected'
+    });
+  } catch (error) {
+    console.error('Health Check - Database Error:', error.message);
+    res.status(500).json({ 
+      status: 'ERROR', 
+      message: 'Silvra Backend is running, but database is unreachable', 
+      database: 'Disconnected',
+      details: error.message
+    });
+  }
 });
 
 // Error handling middleware
