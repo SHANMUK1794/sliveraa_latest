@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../utils/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../core/api_service.dart';
+import 'package:dio/dio.dart';
+
 
 class BankAccountsScreen extends StatefulWidget {
   const BankAccountsScreen({super.key});
@@ -12,6 +14,12 @@ class BankAccountsScreen extends StatefulWidget {
 }
 
 class _BankAccountsScreenState extends State<BankAccountsScreen> {
+  final TextEditingController _bankNameController = TextEditingController();
+  final TextEditingController _accountNumberController = TextEditingController();
+  final TextEditingController _confirmAccountController = TextEditingController();
+  final TextEditingController _ifscController = TextEditingController();
+  final TextEditingController _holderNameController = TextEditingController();
+
   final FocusNode _bankNameFocus = FocusNode();
   bool _isLoading = false;
 
