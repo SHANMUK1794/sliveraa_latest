@@ -112,8 +112,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
+        physics: const ClampingScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height,
+          ),
+          child: Column(
+            children: [
             // Top Header
             Container(
               width: double.infinity,
@@ -137,18 +142,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: MediaQuery.of(context).size.width < 360 ? 18 : 24,
+              ),
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 24 : 40),
                   // Logo
                   Image.asset(
                     'assets/images/logo.png',
-                    width: 120,
-                    height: 80,
+                    width: MediaQuery.of(context).size.width * 0.28,
+                    height: MediaQuery.of(context).size.height * 0.1,
                     errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox(height: 80),
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.1),
                   ),
                   const SizedBox(height: 16),
 
@@ -173,7 +180,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 48),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 32 : 48),
 
                   // Email / Phone Identifier Field
                   _buildInputField(
@@ -223,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 20 : 32),
 
                   // Login Button with Gradient
                   GestureDetector(
@@ -280,7 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     child: Container(
                       width: double.infinity,
-                      height: 60,
+                      height: MediaQuery.of(context).size.height < 700 ? 52 : 60,
                       decoration: BoxDecoration(
                         color: AppColors.primaryBrownGold,
                         borderRadius: BorderRadius.circular(16),
@@ -345,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 48),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 32 : 48),
 
                   // Sign Up Link
                   Row(
@@ -380,11 +387,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: 48),
+                  SizedBox(height: MediaQuery.of(context).size.height < 700 ? 32 : 48),
                 ],
               ),
             ),
           ],
+          ),
         ),
       ),
     );

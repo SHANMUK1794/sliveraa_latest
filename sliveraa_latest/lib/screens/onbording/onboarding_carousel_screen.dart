@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_colors.dart';
 import 'login_screen.dart';
 
@@ -178,31 +181,53 @@ class _OnboardingCarouselScreenState extends State<OnboardingCarouselScreen> {
                 const SizedBox(height: 26),
 
                 // Next Button
-                Padding(
-                  padding: const EdgeInsets.only(
+                 Padding(
+                   padding: EdgeInsets.only(
                     left: 32,
                     right: 32,
-                    bottom: 40,
+                    bottom: MediaQuery.of(context).size.height < 700 ? 24 : 40,
                   ),
                   child: GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       if (_currentPage < _pages.length - 1) {
                         _pageController.nextPage(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
                         );
                       } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
+                        // Request OS permissions as system popups (no custom screen)
+                        await Permission.notification.request();
+                        try {
+                          final auth = LocalAuthentication();
+                          final canCheck = await auth.canCheckBiometrics ||
+                              await auth.isDeviceSupported();
+                          if (canCheck) {
+                            await auth.authenticate(
+                              localizedReason:
+                                  'Enable fingerprint for quick login',
+                              options: const AuthenticationOptions(
+                                biometricOnly: false,
+                                stickyAuth: true,
+                              ),
+                            );
+                          }
+                        } catch (_) {}
+                        // Mark permissions as done
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.setBool('permissions_shown', true);
+                        if (mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
                       }
                     },
                     child: Container(
                       width: double.infinity,
-                      height: 56,
+                      height: MediaQuery.of(context).size.height < 700 ? 50 : 56,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFFC8A27B), Color(0xFFB18960)],
@@ -285,9 +310,9 @@ class OnboardingSlide extends StatelessWidget {
                   vertical: 12,
                 ),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxHeight: 300,
-                    maxWidth: 320,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.36,
+                    maxWidth: MediaQuery.of(context).size.width * 0.82,
                   ),
                   child: Image.asset(data.imagePath, fit: BoxFit.contain),
                 ),

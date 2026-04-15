@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
-import 'dart:math' as math;
+import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -410,163 +411,271 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildBalanceCard() {
     final priceProvider = Provider.of<PriceProvider>(context);
-    final portfolioValue = isGoldSelected 
-        ? (goldBalance * priceProvider.goldPrice) 
+    final portfolioValue = isGoldSelected
+        ? (goldBalance * priceProvider.goldPrice)
         : (silverBalance * priceProvider.silverPrice);
-    
-    return AnimatedBuilder(
-      animation: _shineController,
-      builder: (context, child) {
-        final cardColor = isGoldSelected ? const Color(0xFFA68054) : const Color(0xFF64748B);
-        final accentColor = isGoldSelected ? const Color(0xFF8E6D45) : const Color(0xFF475569);
-        
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: cardColor.withValues(alpha: 0.3),
-                blurRadius: 30,
-                spreadRadius: 2,
-                offset: const Offset(0, 15),
-              ),
-            ],
+
+    // Gold = warm amber, Silver = light grey
+    final goldGradient = const LinearGradient(
+      colors: [Color(0xFFFFD97D), Color(0xFFFFC444), Color(0xFFFFAA00)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    final silverGradient = const LinearGradient(
+      colors: [Color(0xFFE8EDF2), Color(0xFFD0D8E4), Color(0xFFBCC6D6)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
+    final shadowColor =
+        isGoldSelected ? const Color(0xFFFFAA00) : const Color(0xFF8FA0B4);
+    final textColor =
+        isGoldSelected ? const Color(0xFF5C3A00) : const Color(0xFF2D3F55);
+    final subTextColor =
+        isGoldSelected ? const Color(0xFF8B6010) : const Color(0xFF4A6070);
+    final double perfPct = isGoldSelected ? 8.4 : 5.2;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: isGoldSelected ? goldGradient : silverGradient,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.40),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Toggle Buttons (Transparent Minimalist)
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildToggleButton('Gold', isGoldSelected, const Color(0xFFA68054), () => setState(() => isGoldSelected = true)),
-                        _buildToggleButton('Silver', !isGoldSelected, const Color(0xFF64748B), () => setState(() => isGoldSelected = false)),
-                      ],
-                    ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Metal illustration — faint background art
+          Positioned(
+            right: 0,
+            bottom: 0,
+            top: 0,
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(28),
+                  bottomRight: Radius.circular(28),
+                ),
+                child: Opacity(
+                  opacity: 0.28,
+                  child: SizedBox(
+                    width: 160,
+                    child: isGoldSelected
+                        ? _buildGoldArt()
+                        : _buildSilverArt(),
                   ),
-                  _buildLiveBadge(),
-                ],
+                ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Balance',
-                          style: GoogleFonts.inter(
-                            color: Colors.white.withValues(alpha: 0.8), 
-                            fontSize: 12, 
-                            fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          // Content
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Toggle + perf badge
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildToggleButton('Gold', isGoldSelected,
+                              textColor,
+                              () => setState(() => isGoldSelected = true)),
+                          _buildToggleButton('Silver', !isGoldSelected,
+                              textColor,
+                              () => setState(() => isGoldSelected = false)),
+                        ],
+                      ),
+                    ),
+                    // Green perf badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF22C55E).withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: const Color(0xFF22C55E)
+                                .withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.arrow_upward_rounded,
+                              size: 11, color: Color(0xFF16A34A)),
+                          const SizedBox(width: 2),
+                          Text(
+                            '+$perfPct%',
+                            style: GoogleFonts.inter(
+                              color: const Color(0xFF16A34A),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                // Balance
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Balance',
+                        style: GoogleFonts.inter(
+                          color: subTextColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 8),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                '₹',
-                                style: GoogleFonts.spectral(
-                                  color: Colors.white, 
-                                  fontSize: 32, 
-                                  fontWeight: FontWeight.w700,
-                                ),
+                      ),
+                      const SizedBox(height: 6),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '₹',
+                              style: GoogleFonts.inter(
+                                color: textColor,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
                               ),
-                              const SizedBox(width: 2),
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              formatRupee(portfolioValue)
+                                  .replaceAll('₹', ''),
+                              style: GoogleFonts.manrope(
+                                color: textColor,
+                                fontSize: 40,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Withdraw — ghost
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _checkKycAndNavigate(
+                            WithdrawScreen(isGoldInitial: isGoldSelected)),
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.30),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.55)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add, size: 15, color: textColor),
+                              const SizedBox(width: 6),
                               Text(
-                                formatRupee(portfolioValue).replaceAll('₹', ''),
-                                style: GoogleFonts.manrope(
-                                  color: Colors.white, 
-                                  fontSize: 48, 
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -1.0,
+                                'Withdraw',
+                                style: GoogleFonts.inter(
+                                  color: textColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _checkKycAndNavigate(WithdrawScreen(isGoldInitial: isGoldSelected)),
-                      child: _buildCardButton(
-                        'Withdraw', 
-                        Colors.white.withValues(alpha: 0.2), 
-                        Colors.white, 
-                        Icons.account_balance_wallet_rounded,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => _checkKycAndNavigate(SavingsPlanScreen(isGoldInitial: isGoldSelected)),
-                      child: _buildCardButton(
-                        'Start Saving', 
-                        Colors.white, 
-                        cardColor, 
-                        Icons.trending_up_rounded,
-                        isPrimary: true,
+                    const SizedBox(width: 12),
+                    // Start Saving — solid white
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _checkKycAndNavigate(
+                            SavingsPlanScreen(
+                                isGoldInitial: isGoldSelected)),
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 18,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: isGoldSelected
+                                      ? const Color(0xFFFFAA00)
+                                      : const Color(0xFF64748B),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                    Icons.trending_up_rounded,
+                                    size: 11,
+                                    color: Colors.white),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Start Saving',
+                                style: GoogleFonts.inter(
+                                  color: textColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildLiveBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const _PulsatingDot(),
-          const SizedBox(width: 8),
-          Text(
-            'LIVE MARKET',
-            style: GoogleFonts.inter(
-              color: isGoldSelected ? const Color(0xFF422006) : Colors.black, 
-              fontSize: 9, 
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -574,29 +683,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildPerformancePill() {
-    return const SizedBox.shrink(); // Removed per user request to compact card
+  // Gold bars illustration (Flutter-drawn, no image needed)
+  Widget _buildGoldArt() {
+    return CustomPaint(
+      painter: _MetalArtPainter(isGold: true),
+      child: const SizedBox.expand(),
+    );
   }
 
-  Widget _buildToggleButton(String label, bool isSelected, Color activeColor, VoidCallback onTap) {
+  Widget _buildSilverArt() {
+    return CustomPaint(
+      painter: _MetalArtPainter(isGold: false),
+      child: const SizedBox.expand(),
+    );
+  }
+
+  Widget _buildLiveBadge() => const SizedBox.shrink(); // hidden — replaced by perf badge
+
+  Widget _buildPerformancePill() => const SizedBox.shrink();
+
+  Widget _buildToggleButton(String label, bool isSelected, Color textColor, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: isSelected ? [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 1))
-          ] : null,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 2))]
+              : null,
         ),
         child: Text(
           label,
           style: GoogleFonts.inter(
-            color: isSelected 
-              ? activeColor 
-              : Colors.white.withValues(alpha: 0.6),
+            color: isSelected ? textColor : textColor.withValues(alpha: 0.45),
             fontSize: 12,
             fontWeight: FontWeight.w800,
           ),
@@ -611,28 +733,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isPrimary ? [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ] : null,
+        boxShadow: isPrimary ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 4))] : null,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 18, color: text),
           const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.manrope(
-              color: text, 
-              fontSize: 13, 
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-            ),
-          ),
+          Text(label, style: GoogleFonts.manrope(color: text, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
         ],
       ),
     );
@@ -1080,8 +1188,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.only(left: 20, right: 20),
             children: [
-              _buildNewsCard('Top 5 Tech Stocks to Watch in Q3 2024', 'Understand how the latest AI developments are shaping the market...', 'ARTICLE'),
-              _buildNewsCard('New Sustainability Trends in Gold Mining', 'Invest in the future with green energy portfolio insights...', 'INVESTMENT'),
+              _buildNewsCard(
+                'Why Gold Beats Inflation Every Time',
+                'Gold has historically outperformed inflation by 2-3% annually. Here\'s how to take advantage...',
+                'GOLD TIP',
+                isGold: true,
+              ),
+              _buildNewsCard(
+                'Silver: The Underrated Metal for 2024',
+                'Industrial demand for silver is surging. Experts see 15-20% upside in the next 12 months...',
+                'SILVER TIP',
+                isGold: false,
+              ),
             ],
           ),
         ),
@@ -1089,7 +1207,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildNewsCard(String title, String desc, String tag) {
+  Widget _buildNewsCard(String title, String desc, String tag, {bool isGold = true}) {
     return Container(
       width: 260,
       margin: const EdgeInsets.only(right: 16),
@@ -1104,26 +1222,40 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Container(
             height: 130,
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              image: tag == 'ARTICLE' 
-                  ? const DecorationImage(
-                      image: NetworkImage('https://images.unsplash.com/photo-1623156346149-55cd8b737727?auto=format&fit=crop&w=400&q=80'),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
+              gradient: isGold
+                  ? const LinearGradient(
+                      colors: [Color(0xFFD4A55A), Color(0xFFA8722A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     )
-                  : null,
+                  : const LinearGradient(
+                      colors: [Color(0xFF64748B), Color(0xFF1E293B)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
             ),
             child: Center(
-              child: tag == 'ARTICLE' ? Text(
-                'INSIGHT', 
-                style: GoogleFonts.manrope(
-                  color: Colors.white, 
-                  fontSize: 24, 
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 4,
-                )
-              ) : const SizedBox(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isGold ? Icons.monetization_on_rounded : Icons.water_drop_rounded,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    size: 40,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isGold ? 'GOLD' : 'SILVER',
+                    style: GoogleFonts.manrope(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(
@@ -1134,40 +1266,40 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: tag == 'ARTICLE' ? const Color(0xFFFEF3C7) : const Color(0xFFDCFCE7), 
+                    color: isGold ? const Color(0xFFFEF3C7) : const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    tag, 
+                    tag,
                     style: GoogleFonts.inter(
-                      color: tag == 'ARTICLE' ? const Color(0xFFD97706) : const Color(0xFF16A34A), 
-                      fontSize: 9, 
+                      color: isGold ? const Color(0xFFD97706) : const Color(0xFF475569),
+                      fontSize: 9,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5
-                    )
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  title, 
+                  title,
                   maxLines: 2,
                   style: GoogleFonts.manrope(
-                    fontSize: 14, 
-                    fontWeight: FontWeight.w800, 
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                     height: 1.3,
-                    color: const Color(0xFF111827)
-                  )
+                    color: const Color(0xFF111827),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  desc, 
-                  maxLines: 2, 
-                  overflow: TextOverflow.ellipsis, 
+                  desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.inter(
-                    color: const Color(0xFF94A3B8), 
+                    color: const Color(0xFF94A3B8),
                     fontSize: 12,
-                    fontWeight: FontWeight.w500
-                  )
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -1253,8 +1385,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPartnerLogo('AUGMONT', 'Gold Partner'),
-              _buildPartnerLogo('SEQUEL', 'Logistics Partner'),
+              _buildPartnerLogo('MMTC-PAMP', 'Gold Partner'),
+              _buildPartnerLogo('SEQUEL', 'Logistics'),
               _buildPartnerLogo('RAZORPAY', 'Payments'),
             ],
           ),
@@ -1366,7 +1498,7 @@ class _ZenithPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final random = math.Random(42);
+    final random = Random(42);
     final paint = Paint();
     
     // Draw fine metallic grain
@@ -1405,7 +1537,7 @@ class _GrainPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint();
-    final random = math.Random(42);
+    final random = Random(42);
     for (int i = 0; i < 5000; i++) {
       paint.color = Colors.black.withValues(alpha: random.nextDouble() * 0.5);
       canvas.drawCircle(
@@ -1471,3 +1603,201 @@ class _PulsatingDotState extends State<_PulsatingDot> with SingleTickerProviderS
     );
   }
 }
+
+// ── Realistic metal art painter ──────────────────────────────────────────────
+class _MetalArtPainter extends CustomPainter {
+  final bool isGold;
+  const _MetalArtPainter({required this.isGold});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (isGold) {
+      _drawGoldBars(canvas, size);
+    } else {
+      _drawSilverCoins(canvas, size);
+    }
+  }
+
+  /// Draws stacked 3D gold bars with top face, front face, and right side face
+  void _drawGoldBars(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final double barW = size.width * 0.72;
+    final double barH = size.height * 0.11;
+    final double sideD = size.width * 0.10; // depth of 3D side
+    final double topD = size.height * 0.04;  // depth of 3D top face
+
+    for (int i = 4; i >= 0; i--) {
+      final double x0 = size.width * 0.04;
+      final double y0 = size.height * 0.08 + i * (barH + topD + 8);
+
+      // ── Front face ──────────────────────────────
+      paint.shader = ui.Gradient.linear(
+        Offset(x0, y0 + topD),
+        Offset(x0, y0 + topD + barH),
+        [const Color(0xFFB8860B), const Color(0xFF8B6914)],
+      );
+      final front = Path()
+        ..moveTo(x0, y0 + topD)
+        ..lineTo(x0 + barW, y0 + topD)
+        ..lineTo(x0 + barW, y0 + topD + barH)
+        ..lineTo(x0, y0 + topD + barH)
+        ..close();
+      canvas.drawPath(front, paint);
+
+      // ── Top face ────────────────────────────────
+      paint.shader = ui.Gradient.linear(
+        Offset(x0, y0),
+        Offset(x0, y0 + topD),
+        [const Color(0xFFFFD700), const Color(0xFFDAA520)],
+      );
+      final top = Path()
+        ..moveTo(x0, y0 + topD)
+        ..lineTo(x0 + sideD, y0)
+        ..lineTo(x0 + barW + sideD, y0)
+        ..lineTo(x0 + barW, y0 + topD)
+        ..close();
+      canvas.drawPath(top, paint);
+
+      // ── Right side face ─────────────────────────
+      paint.shader = ui.Gradient.linear(
+        Offset(x0 + barW, y0 + topD),
+        Offset(x0 + barW + sideD, y0 + topD),
+        [const Color(0xFF8B6914), const Color(0xFF5C4500)],
+      );
+      final side = Path()
+        ..moveTo(x0 + barW, y0 + topD)
+        ..lineTo(x0 + barW + sideD, y0)
+        ..lineTo(x0 + barW + sideD, y0 + barH)
+        ..lineTo(x0 + barW, y0 + topD + barH)
+        ..close();
+      canvas.drawPath(side, paint);
+
+      // ── Shine line on top face ───────────────────
+      paint.shader = null;
+      paint.color = const Color(0xFFFFFFAA).withOpacity(0.35);
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = 1.2;
+      canvas.drawLine(
+        Offset(x0 + 8, y0 + topD - 2),
+        Offset(x0 + barW - 8, y0 + topD - 2),
+        paint,
+      );
+      paint.style = PaintingStyle.fill;
+
+      // ── Engraved divider on front face ───────────
+      paint.color = const Color(0xFF5C4500).withOpacity(0.4);
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = 0.8;
+      canvas.drawLine(
+        Offset(x0 + barW * 0.3, y0 + topD + 4),
+        Offset(x0 + barW * 0.3, y0 + topD + barH - 4),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(x0 + barW * 0.7, y0 + topD + 4),
+        Offset(x0 + barW * 0.7, y0 + topD + barH - 4),
+        paint,
+      );
+      paint.style = PaintingStyle.fill;
+    }
+  }
+
+  /// Draws a stack of silver coins with proper perspective
+  void _drawSilverCoins(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final double cx = size.width * 0.50;
+    final double rx = size.width * 0.40; // coin x-radius
+    final double ry = rx * 0.28;         // coin y-radius (ellipse top)
+    final double thick = size.height * 0.055; // coin thickness
+
+    final int coins = 6;
+    final double startY = size.height * 0.80;
+    final double step = thick + 2;
+
+    for (int i = coins - 1; i >= 0; i--) {
+      final double cy = startY - i * step;
+
+      // ── Bottom ellipse (rim shadow) ──────────────
+      paint.color = const Color(0xFF3A4A5A).withOpacity(0.25);
+      canvas.drawOval(Rect.fromCenter(
+          center: Offset(cx, cy + thick * 0.6),
+          width: rx * 2 * 0.85,
+          height: ry * 2 * 0.6),
+          paint);
+
+      // ── Coin side (cylindrical body) ────────────
+      paint.shader = ui.Gradient.linear(
+        Offset(cx - rx, cy),
+        Offset(cx + rx, cy),
+        [
+          const Color(0xFF4A5568),
+          const Color(0xFFCBD5E1),
+          const Color(0xFF94A3B8),
+          const Color(0xFF4A5568),
+        ],
+        [0.0, 0.35, 0.65, 1.0],
+      );
+      final side = Path()
+        ..moveTo(cx - rx, cy)
+        ..lineTo(cx - rx, cy + thick)
+        ..arcTo(
+            Rect.fromCenter(
+                center: Offset(cx, cy + thick), width: rx * 2, height: ry * 2),
+            pi, // π = start angle (left)
+            pi, // draw bottom half
+            false)
+        ..lineTo(cx + rx, cy)
+        ..arcTo(
+            Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2),
+            0,
+            -pi,
+            false)
+        ..close();
+      canvas.drawPath(side, paint);
+
+      // ── Top face ────────────────────────────────
+      paint.shader = ui.Gradient.radial(
+        Offset(cx - rx * 0.2, cy - ry * 0.2),
+        rx,
+        [
+          const Color(0xFFE2E8F0),
+          const Color(0xFFCBD5E1),
+          const Color(0xFF94A3B8),
+        ],
+        [0.0, 0.6, 1.0],
+      );
+      canvas.drawOval(
+          Rect.fromCenter(center: Offset(cx, cy), width: rx * 2, height: ry * 2),
+          paint);
+
+      // ── Inner rim on top face ────────────────────
+      paint.shader = null;
+      paint.color = const Color(0xFF64748B).withOpacity(0.4);
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = 1.0;
+      canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(cx, cy), width: rx * 1.7, height: ry * 1.7),
+          paint);
+
+      // ── Shine on top face ────────────────────────
+      paint.color = Colors.white.withOpacity(0.50);
+      paint.strokeWidth = 1.0;
+      canvas.drawArc(
+        Rect.fromCenter(
+            center: Offset(cx - rx * 0.1, cy - ry * 0.1),
+            width: rx * 1.0,
+            height: ry * 1.0),
+        -0.9,
+        -1.2,
+        false,
+        paint,
+      );
+      paint.style = PaintingStyle.fill;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MetalArtPainter old) => old.isGold != isGold;
+}
+

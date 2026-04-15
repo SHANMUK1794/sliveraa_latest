@@ -299,12 +299,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         // Check Spam Logic
                         Center(
                           child: GestureDetector(
-                            onTap: _secondsRemaining == 0 ? () {
-                              _sendOtp(); 
+                            onTap: _secondsRemaining == 0 ? () async {
+                              await _sendOtp();
+                              _timer?.cancel();
                               setState(() {
                                 _secondsRemaining = 45;
-                                _startTimer();
                               });
+                              _startTimer();
                             } : null,
                             child: Text.rich(
                               TextSpan(

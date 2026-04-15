@@ -123,8 +123,10 @@ class ApiService {
 
   // Auth Methods
   Future<Response> login(String identifier, String password) async {
+    // Detect whether the user entered an email or phone number
+    final bool isEmail = identifier.contains('@');
     return await _dio.post('auth/login', data: {
-      'phone': identifier,
+      if (isEmail) 'email': identifier else 'phone': identifier,
       'password': password,
     });
   }

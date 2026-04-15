@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding_carousel_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_state.dart';
+import '../home/home_screen.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,14 +24,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
-  void _checkSession() {
-    // We import AppState and use it here
+  void _checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
     final appState = AppState();
+
+    // Already logged in → skip everything
     if (appState.userId.isNotEmpty) {
-       // Already active? Skip onboarding
-       // We'll navigate to Home in a future enhancement if desired, 
-       // but for now, we leave it to manual swipe to avoid "jumping"
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+      return;
     }
+
+    // Permissions already shown → skip to login
+    final permissionsShown = prefs.getBool('permissions_shown') ?? false;
+    if (permissionsShown) {
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    }
+    // else: stay on onboarding screen for fresh first-launch flow
   }
 
   @override

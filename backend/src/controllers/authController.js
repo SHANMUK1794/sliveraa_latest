@@ -43,7 +43,12 @@ class AuthController {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-      // 2. Store in DB (Upsert to avoid multiple active OTPs for same intent)
+      // 2. Delete any existing OTPs for this phone+intent (handles resend cleanly)
+      await prisma.otpVerification.deleteMany({
+        where: { phoneNumber: phone, intent }
+      });
+
+      // 3. Create fresh OTP record
       await prisma.otpVerification.create({
         data: {
           phoneNumber: phone,
