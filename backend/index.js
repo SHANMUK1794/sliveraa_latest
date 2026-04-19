@@ -15,6 +15,7 @@ const transactionRoutes = require('./src/routes/transactionRoutes');
 const bankRoutes = require('./src/routes/bankRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const supportRoutes = require('./src/routes/supportRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,7 +23,11 @@ const PORT = process.env.PORT || 3000;
 // Middlewares
 app.use(cors());
 app.use(morgan('dev'));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes aligned with Flutter ApiService
@@ -38,6 +43,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/banks', bankRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health Check
 app.get('/health', async (req, res) => {

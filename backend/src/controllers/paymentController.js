@@ -91,60 +91,10 @@ class PaymentController {
       if (!isValid) return res.status(401).json({ error: 'Invalid payment signature' });
 
       try {
-        // Find and update transaction
-        const transaction = await prisma.transaction.findUnique({
-          where: { razorpayOrderId: razorpay_order_id },
-        });
-
-        if (!transaction || transaction.status !== 'PENDING') {
-          return res.status(400).json({ error: 'Transaction not found or already processed' });
+        const result = await this._fulfillOrder(razorpay_order_id, razorpay_payment_id);
+        if (!result.success) {
+          return res.status(400).json({ error: result.message });
         }
-
-        await prisma.$transaction(async (tx) => {
-          // Update Transaction
-          await tx.transaction.update({
-            where: { id: transaction.id },
-            data: {
-              status: 'COMPLETED',
-              razorpayPaymentId: razorpay_payment_id
-            }
-          });
-
-          // Update User Balance
-          if (transaction.type === 'DEPOSIT') {
-            await tx.user.update({
-              where: { id: userId },
-              data: { walletBalance: { increment: transaction.amount } }
-            });
-            await notificationService.notify(userId, 'Deposit Successful', `₹${transaction.amount} has been added to your wallet.`, 'TRANSACTION');
-          } else if (transaction.type === 'BUY') {
-            if (transaction.metalType === 'GOLD') {
-              await tx.user.update({
-                where: { id: userId },
-                data: { goldBalance: { increment: transaction.weight || 0 } }
-              });
-              await notificationService.notify(userId, 'Gold Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm 24K Gold added to your vault.`, 'TRANSACTION');
-            } else if (transaction.metalType === 'SILVER') {
-              await tx.user.update({
-                where: { id: userId },
-                data: { silverBalance: { increment: transaction.weight || 0 } }
-              });
-              await notificationService.notify(userId, 'Silver Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm Fine Silver added to your vault.`, 'TRANSACTION');
-            }
-            // Award Rewards
-            await rewardService.creditPurchaseReward(userId, transaction.amount);
-
-            // Activate SIP if this was the first payment
-            if (transaction.savingsPlanId) {
-              await tx.savingsPlan.update({
-                where: { id: transaction.savingsPlanId },
-                data: { status: 'ACTIVE' }
-              });
-              await notificationService.notify(userId, 'SIP Activated', `Your ${transaction.metalType} SIP plan has been successfully activated.`, 'SYSTEM');
-            }
-          }
-        });
-
         res.json({ success: true, message: 'Payment verified and transaction completed' });
       } catch (error) {
         console.error('Verify Payment Database Error:', error);
@@ -159,6 +109,117 @@ class PaymentController {
       }
       console.error('Verify Payment Request Error:', error);
       res.status(500).json({ error: 'Internal Server Error', message: error.message });
+    }
+  }
+
+  /**
+   * Internal Method to fulfill Razorpay order
+   */
+  async _fulfillOrder(razorpay_order_id, razorpay_payment_id) {
+    // Find and update transaction
+    const transaction = await prisma.transaction.findUnique({
+      where: { razorpayOrderId: razorpay_order_id },
+    });
+
+    if (!transaction || transaction.status !== 'PENDING') {
+      return { success: false, message: 'Transaction not found or already processed' };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Update Transaction
+      await tx.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: 'COMPLETED',
+          razorpayPaymentId: razorpay_payment_id
+        }
+      });
+
+      const userId = transaction.userId;
+
+      // Update User Balance
+      if (transaction.type === 'DEPOSIT') {
+        await tx.user.update({
+          where: { id: userId },
+          data: { walletBalance: { increment: transaction.amount } }
+        });
+        await notificationService.notify(userId, 'Deposit Successful', `₹${transaction.amount} has been added to your wallet.`, 'TRANSACTION');
+      } else if (transaction.type === 'BUY') {
+        if (transaction.metalType === 'GOLD') {
+          await tx.user.update({
+            where: { id: userId },
+            data: { goldBalance: { increment: transaction.weight || 0 } }
+          });
+          await notificationService.notify(userId, 'Gold Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm 24K Gold added to your vault.`, 'TRANSACTION');
+        } else if (transaction.metalType === 'SILVER') {
+          await tx.user.update({
+            where: { id: userId },
+            data: { silverBalance: { increment: transaction.weight || 0 } }
+          });
+          await notificationService.notify(userId, 'Silver Purchased', `Congratulations! ${transaction.weight?.toFixed(4)}gm Fine Silver added to your vault.`, 'TRANSACTION');
+        }
+        // Award Rewards
+        await rewardService.creditPurchaseReward(userId, transaction.amount);
+
+        // Activate SIP if this was the first payment
+        if (transaction.savingsPlanId) {
+          await tx.savingsPlan.update({
+            where: { id: transaction.savingsPlanId },
+            data: { status: 'ACTIVE' }
+          });
+          await notificationService.notify(userId, 'SIP Activated', `Your ${transaction.metalType} SIP plan has been successfully activated.`, 'SYSTEM');
+        }
+      }
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Razorpay Webhook Handler
+   */
+  async webhookHandler(req, res) {
+    try {
+      const crypto = require('crypto');
+      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      
+      if (!webhookSecret || webhookSecret === 'your_webhook_secret_here') {
+        return res.status(200).send('Webhook unconfigured, ignored');
+      }
+
+      // 1. Verify Signature
+      const signature = req.headers['x-razorpay-signature'];
+      if (!signature || !req.rawBody) {
+        return res.status(400).send('Missing signature or raw body');
+      }
+      
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(req.rawBody)
+        .digest('hex');
+      
+      if (expectedSignature !== signature) {
+        return res.status(401).send('Invalid Webhook Signature');
+      }
+      
+      // 2. Process Payload safely
+      const payload = req.body;
+      const eventName = payload.event;
+      
+      if (eventName === 'payment.captured' || eventName === 'payment.authorized') {
+        const paymentEntity = payload.payload.payment.entity;
+        const razorpay_order_id = paymentEntity.order_id;
+        const razorpay_payment_id = paymentEntity.id;
+        
+        if (razorpay_order_id && razorpay_payment_id) {
+           await this._fulfillOrder(razorpay_order_id, razorpay_payment_id);
+        }
+      }
+      
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error('Webhook Error:', error);
+      res.status(500).send('Webhook Internal Error');
     }
   }
 }
