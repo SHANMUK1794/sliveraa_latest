@@ -50,9 +50,7 @@ function App() {
         />
         
         <main className="main-content" style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-          <div className="table-responsive">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     );

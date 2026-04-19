@@ -75,7 +75,7 @@ const Overview = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <h3 style={{ fontSize: '18px' }}>Action Items</h3>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div className="grid-2-col">
           <ActionCard 
             title="Pending Deliveries" 
             count={metrics.pendingDeliveries} 

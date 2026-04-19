@@ -98,7 +98,7 @@ const UserDetailModal = ({ userId, onClose, onUpdate }) => {
           </section>
 
           {/* Grid Layout for remaining details */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          <div className="grid-2-col">
             
             {/* Bank Accounts */}
             <section>
@@ -198,8 +198,9 @@ const UserDetailModal = ({ userId, onClose, onUpdate }) => {
             <h3 style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               <Activity size={16} /> Recent Transactions
             </h3>
-            <table className="data-table">
-              <thead>
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
                 <tr>
                   <th>Type</th>
                   <th>Amount</th>
@@ -221,6 +222,7 @@ const UserDetailModal = ({ userId, onClose, onUpdate }) => {
                 )}
               </tbody>
             </table>
+            </div>
           </section>
 
         </div>
