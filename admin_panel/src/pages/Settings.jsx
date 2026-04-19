@@ -17,7 +17,7 @@ const Settings = () => {
           
           <div className="input-group">
             <label className="input-label">Razorpay Live Key ID</label>
-            <input type="text" className="input-field" placeholder="rzp_live_xxxxxxxxxxx" defaultValue="rzp_test_MOCK_SILVRA" disabled style={{ opacity: 0.7 }} />
+            <input type="password" className="input-field" placeholder="••••••••••••••" disabled style={{ opacity: 0.7 }} />
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Configured via .env on server</span>
           </div>
           

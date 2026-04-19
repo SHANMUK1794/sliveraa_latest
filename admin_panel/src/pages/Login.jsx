@@ -16,8 +16,9 @@ const Login = ({ setAuthenticated }) => {
     setLoading(true);
 
     try {
-      // Using standard login API (which is just auth/login)
-      const res = await axios.post('http://localhost:3000/api/auth/login', {
+      // Configured for live environment
+      const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      const res = await axios.post(`${baseURL}/auth/login`, {
         phone,
         password
       });

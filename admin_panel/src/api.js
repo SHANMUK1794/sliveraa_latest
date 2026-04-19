@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // Match the backend port 3000
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api', // Uses env or defaults to local
 });
 
 // Mock Auth Interceptor (In real scenario, fetch JWT from localStorage)

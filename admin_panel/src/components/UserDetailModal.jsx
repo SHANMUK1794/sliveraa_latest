@@ -135,6 +135,36 @@ const UserDetailModal = ({ userId, onClose }) => {
                 </div>
               )) : <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No active SIPs.</div>}
             </section>
+
+            {/* KYC Identity Verification */}
+            <section>
+              <h3 style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                <Activity size={16} /> Identity & KYC
+              </h3>
+              {details.kycDetails ? (
+                <div style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-subtle)', borderRadius: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Document Type</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '13px' }}>{details.kycDetails.documentType}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Doc Number</span>
+                    <span style={{ fontSize: '13px', fontFamily: 'monospace' }}>{details.kycDetails.documentNumber}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>System Status</span>
+                    <span style={{ fontSize: '13px', color: details.kycDetails.status === 'VERIFIED' ? '#10b981' : '#f59e0b' }}>{details.kycDetails.status}</span>
+                  </div>
+                  {details.kycDetails.verificationId && (
+                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', overflowWrap: 'break-word' }}>
+                       Surepass Transaction ID: {details.kycDetails.verificationId}
+                     </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No KYC documents submitted yet.</div>
+              )}
+            </section>
           </div>
 
           {/* Recent Activity */}

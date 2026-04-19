@@ -33,14 +33,14 @@ const Overview = () => {
         <MetricCard 
           title="Total Platform Wealth" 
           value={`₹${(metrics.totalWalletBalance).toLocaleString()}`} 
-          trend="+12.5%" 
+          trend="Live Sync" 
           icon={<TrendingUp size={20} />} 
           glow={true}
         />
         <MetricCard 
           title="Active Users" 
           value={metrics.totalUsers.toLocaleString()} 
-          trend="+142 this week" 
+          trend="Live Sync" 
           icon={<Users size={20} />} 
         />
         <MetricCard 
