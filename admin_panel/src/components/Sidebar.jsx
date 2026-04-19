@@ -1,11 +1,11 @@
 import { BarChart3, Users, Package, Settings, LogOut, FileText, Repeat } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = ({ onLogout, isOpen, onClose }) => {
   return (
-    <aside style={{
+    <aside className={`desktop-sidebar ${isOpen ? 'open' : ''}`} style={{
       width: '260px',
-      background: 'rgba(20, 23, 31, 0.8)',
+      background: 'rgba(20, 23, 31, 0.95)',
       backdropFilter: 'blur(12px)',
       borderRight: '1px solid rgba(255, 255, 255, 0.05)',
       display: 'flex',
@@ -14,14 +14,20 @@ const Sidebar = ({ onLogout }) => {
       position: 'sticky',
       top: 0
     }}>
-      <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-        <h2 className="text-gradient-gold" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #c8a27b 0%, #a37c56 100%)' }}></div>
-          SILVRA
-        </h2>
-        <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px' }}>
-          Admin Console
+      <div style={{ padding: '32px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 className="text-gradient-gold" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: 'linear-gradient(135deg, #c8a27b 0%, #a37c56 100%)' }}></div>
+            SILVRA
+          </h2>
+          <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '2px' }}>
+            Admin Console
+          </div>
         </div>
+        {/* Mobile Close Button */}
+        <button className="btn-icon" onClick={onClose} style={{ display: 'none' }} id="sidebar-close-btn">
+          x
+        </button>
       </div>
 
       <nav style={{ padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>

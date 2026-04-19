@@ -24,7 +24,14 @@ const Login = ({ setAuthenticated }) => {
       });
 
       if (res.data.success) {
+        if (res.data.user.role === 'USER') {
+          setError('Access Denied: Standard users cannot access the administration console.');
+          return;
+        }
+        
         localStorage.setItem('admin_token', res.data.token);
+        localStorage.setItem('admin_role', res.data.user.role || 'ADMIN');
+        localStorage.setItem('admin_user_id', res.data.user.id);
         setAuthenticated(true);
         navigate('/overview');
       }

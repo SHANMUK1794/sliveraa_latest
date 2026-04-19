@@ -193,7 +193,8 @@ class AuthController {
           name: user.name,
           email: user.email,
           phoneNumber: user.phoneNumber,
-          referralCode: user.referralCode
+          referralCode: user.referralCode,
+          role: user.role
         }
       });
     } catch (error) {
@@ -259,7 +260,8 @@ class AuthController {
           name: user.name,
           email: user.email,
           phoneNumber: user.phoneNumber,
-          referralCode: user.referralCode
+          referralCode: user.referralCode,
+          role: user.role
         }
       });
     } catch (error) {

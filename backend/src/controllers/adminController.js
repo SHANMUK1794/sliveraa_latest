@@ -215,6 +215,71 @@ class AdminController {
       res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
   }
+
+  async updateUserRole(req, res) {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      
+      const validRoles = ['USER', 'ADMIN', 'SUPER_ADMIN'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ success: false, message: 'Invalid role specified' });
+      }
+
+      await prisma.user.update({
+        where: { id },
+        data: { role }
+      });
+      res.json({ success: true, message: `User role updated to ${role}` });
+    } catch (error) {
+      console.error('Super Admin Update Role Error:', error);
+      res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
+
+  async createUser(req, res) {
+    try {
+      const { name, phoneNumber, email, password, role } = req.body;
+      const authUtils = require('../utils/authUtils');
+      
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phoneNumber },
+            { email }
+          ]
+        }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'A user with this phone number or email already exists' });
+      }
+
+      const validRoles = ['USER', 'ADMIN', 'SUPER_ADMIN'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ success: false, message: 'Invalid role specified' });
+      }
+
+      const hashedPassword = password ? await authUtils.hashPassword(password) : null;
+      const referralCode = await authUtils.generateReferralCode(prisma);
+
+      const user = await prisma.user.create({
+        data: {
+          name,
+          phoneNumber,
+          email: email ? email.toLowerCase() : null,
+          password: hashedPassword,
+          role,
+          referralCode
+        }
+      });
+      
+      res.json({ success: true, message: `User created successfully with role ${role}` });
+    } catch (error) {
+      console.error('Super Admin Create User Error:', error);
+      res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+  }
 }
 
 module.exports = new AdminController();

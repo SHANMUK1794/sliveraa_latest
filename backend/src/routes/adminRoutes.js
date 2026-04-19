@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middlewares/auth');
 const adminMiddleware = require('../middlewares/admin');
+const superAdminMiddleware = require('../middlewares/superAdmin');
 
 // All routes here are protected by Auth and Admin middlewares
 router.use(authMiddleware);
@@ -16,5 +17,9 @@ router.patch('/deliveries/:id', adminController.updateDelivery);
 router.get('/transactions', adminController.getTransactions);
 router.get('/sips', adminController.getSips);
 router.patch('/kyc/:id', adminController.processKyc);
+
+// Routes requiring Super Admin
+router.post('/users', superAdminMiddleware, adminController.createUser);
+router.patch('/users/:id/role', superAdminMiddleware, adminController.updateUserRole);
 
 module.exports = router;

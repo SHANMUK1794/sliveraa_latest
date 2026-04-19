@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { Search, Filter, ShieldCheck, ShieldAlert, AlertCircle } from 'lucide-react';
 import api from '../api';
 import UserDetailModal from '../components/UserDetailModal';
+import CreateUserModal from '../components/CreateUserModal';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [period, setPeriod] = useState('all_time');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const isSuperAdmin = localStorage.getItem('admin_role') === 'SUPER_ADMIN';
 
   useEffect(() => {
     fetchUsers();
@@ -42,12 +46,14 @@ const Users = () => {
 
   return (
     <div className="animate-fade-in">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+      <header style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div>
           <h1 style={{ fontSize: '28px', color: 'var(--text-primary)' }}>User Management</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage accounts, view balances, and approve KYC.</p>
         </div>
-        <button className="btn-primary">Add User</button>
+        {isSuperAdmin && (
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>Add System User</button>
+        )}
       </header>
 
       <div className="glass-panel" style={{ overflow: 'hidden' }}>
@@ -151,6 +157,17 @@ const Users = () => {
         <UserDetailModal 
           userId={selectedUserId} 
           onClose={() => setSelectedUserId(null)} 
+          onUpdate={fetchUsers}
+        />
+      )}
+      
+      {showCreateModal && (
+        <CreateUserModal 
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchUsers();
+          }}
         />
       )}
     </div>

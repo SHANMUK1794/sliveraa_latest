@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { X, Gift, MapPin, CreditCard, Activity, CalendarDays } from 'lucide-react';
 import api from '../api';
 
-const UserDetailModal = ({ userId, onClose }) => {
+const UserDetailModal = ({ userId, onClose, onUpdate }) => {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isSuperAdmin = localStorage.getItem('admin_role') === 'SUPER_ADMIN';
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -22,6 +23,18 @@ const UserDetailModal = ({ userId, onClose }) => {
     fetchDetails();
   }, [userId]);
 
+  const handleRoleChange = async (newRole) => {
+    try {
+      const res = await api.patch(`/admin/users/${userId}/role`, { role: newRole });
+      if (res.data.success) {
+        setDetails(prev => ({ ...prev, role: newRole }));
+        if (onUpdate) onUpdate();
+      }
+    } catch(err) {
+      alert(err.response?.data?.message || 'Failed to update role');
+    }
+  };
+
   if (loading) {
     return (
       <div className="modal-overlay">
@@ -37,17 +50,30 @@ const UserDetailModal = ({ userId, onClose }) => {
   return (
     <div className="modal-overlay">
       <div className="glass-panel modal-content" style={{ maxWidth: '800px', width: '90%', maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-dark)' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-dark)', zIndex: 10 }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'var(--bg-dark)', zIndex: 10 }}>
           <h2 style={{ fontSize: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-gold), var(--accent-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '18px' }}>
               {details.name ? details.name.charAt(0) : '?'}
             </div>
             <div>
-              <div>{details.name || 'Unnamed User'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {details.name || 'Unnamed User'}
+                {details.role === 'SUPER_ADMIN' && <span className="badge badge-admin" style={{ padding: '2px 6px', fontSize: '10px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderColor: '#ef4444' }}>Super Admin</span>}
+                {details.role === 'ADMIN' && <span className="badge badge-admin" style={{ padding: '2px 6px', fontSize: '10px' }}>Admin</span>}
+              </div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'normal' }}>{details.phoneNumber} • {details.email || 'No email'}</div>
             </div>
           </h2>
-          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {isSuperAdmin && details.id !== localStorage.getItem('admin_user_id') && (
+              <select value={details.role} onChange={e => handleRoleChange(e.target.value)} className="input-field" style={{ padding: '8px 12px', fontSize: '13px', minWidth: '140px' }}>
+                <option value="USER">App User</option>
+                <option value="ADMIN">Admin</option>
+                <option value="SUPER_ADMIN">Super Admin</option>
+              </select>
+            )}
+            <button onClick={onClose} className="btn-icon"><X size={20} /></button>
+          </div>
         </div>
 
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
