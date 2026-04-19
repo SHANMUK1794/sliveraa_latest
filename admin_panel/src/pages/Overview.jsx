@@ -3,6 +3,7 @@ import { ArrowUpRight, TrendingUp, Users, Package } from 'lucide-react';
 import api from '../api';
 
 const Overview = () => {
+  const [period, setPeriod] = useState('all_time');
   const [metrics, setMetrics] = useState({
     totalUsers: 0,
     totalWalletBalance: 0,
@@ -13,20 +14,33 @@ const Overview = () => {
   });
 
   useEffect(() => {
-    api.get('/admin/metrics').then(res => {
+    api.get('/admin/metrics', { params: { period } }).then(res => {
       if (res.data.success) {
         setMetrics(res.data.metrics);
       }
     }).catch(err => {
       console.error('Failed to load metrics:', err);
     });
-  }, []);
+  }, [period]);
 
   return (
     <div className="animate-fade-in">
-      <header style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: '28px', color: 'var(--text-primary)' }}>Overview</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Welcome to the Silvra Admin Console. Here's what's happening today.</p>
+      <header style={{ marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', color: 'var(--text-primary)' }}>Overview</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>Welcome to the Silvra Admin Console. Here's what's happening today.</p>
+        </div>
+        <select 
+          value={period} 
+          onChange={(e) => setPeriod(e.target.value)} 
+          className="input-field" 
+          style={{ width: '180px', background: 'rgba(0,0,0,0.3)', padding: '10px' }}
+        >
+          <option value="all_time">All Time</option>
+          <option value="monthly">This Month</option>
+          <option value="weekly">This Week</option>
+          <option value="daily">Today (24h)</option>
+        </select>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>

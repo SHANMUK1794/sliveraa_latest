@@ -7,14 +7,15 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [period, setPeriod] = useState('all_time');
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [period]);
 
   const fetchUsers = async () => {
     try {
-      const res = await api.get('/admin/users');
+      const res = await api.get('/admin/users', { params: { period } });
       if (res.data.success) {
         setUsers(res.data.users);
       }
@@ -62,9 +63,20 @@ const Users = () => {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-icon">
-            <Filter size={18} />
-          </button>
+          
+          <div style={{ position: 'relative' }}>
+            <select 
+              value={period} 
+              onChange={(e) => setPeriod(e.target.value)} 
+              className="input-field" 
+              style={{ width: '180px', background: 'rgba(0,0,0,0.3)', padding: '10px' }}
+            >
+              <option value="all_time">Joined: All Time</option>
+              <option value="monthly">Joined: This Month</option>
+              <option value="weekly">Joined: This Week</option>
+              <option value="daily">Joined: Today</option>
+            </select>
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>

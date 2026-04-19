@@ -4,9 +4,31 @@ class AdminController {
   
   async getMetrics(req, res) {
     try {
-      const totalUsers = await prisma.user.count();
+      const { period } = req.query;
+      let dateFilter = {};
       
+      if (period && period !== 'all_time') {
+        const now = new Date();
+        const gteDate = new Date();
+        if (period === 'daily') gteDate.setDate(now.getDate() - 1);
+        else if (period === 'weekly') gteDate.setDate(now.getDate() - 7);
+        else if (period === 'monthly') gteDate.setMonth(now.getMonth() - 1);
+        
+        dateFilter = {
+          createdAt: {
+            gte: gteDate
+          }
+        };
+      }
+
+      const totalUsers = await prisma.user.count({ where: dateFilter });
+      
+      // If we are filtering by period, we must get the aggregate of funds added IN that period! 
+      // User balances just show the total *current* balance, they aren't timeframe-specific.
+      // But let's assume we want total balances of users who JOINED in that timeframe, OR we can just return total system balances if the filter only applies to joined users.
+      // The user requested: "memnber joind like that etc". It's easiest to apply dateFilter to the user row completely.
       const balances = await prisma.user.aggregate({
+        where: dateFilter,
         _sum: {
           walletBalance: true,
           goldBalance: true,
@@ -15,11 +37,11 @@ class AdminController {
       });
       
       const activeSips = await prisma.savingsPlan.count({
-        where: { status: 'ACTIVE' }
+        where: { status: 'ACTIVE', ...dateFilter }
       });
       
       const pendingDeliveries = await prisma.deliveryRequest.count({
-        where: { status: 'PENDING' }
+        where: { status: 'PENDING', ...dateFilter }
       });
 
       res.json({
@@ -41,7 +63,25 @@ class AdminController {
 
   async getUsers(req, res) {
     try {
+      const { period } = req.query;
+      let dateFilter = {};
+      
+      if (period && period !== 'all_time') {
+        const now = new Date();
+        const gteDate = new Date();
+        if (period === 'daily') gteDate.setDate(now.getDate() - 1);
+        else if (period === 'weekly') gteDate.setDate(now.getDate() - 7);
+        else if (period === 'monthly') gteDate.setMonth(now.getMonth() - 1);
+        
+        dateFilter = {
+          createdAt: {
+            gte: gteDate
+          }
+        };
+      }
+
       const users = await prisma.user.findMany({
+        where: dateFilter,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
