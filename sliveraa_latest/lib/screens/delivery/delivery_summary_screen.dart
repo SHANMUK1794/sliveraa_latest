@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
+
 import '../../theme/app_colors.dart';
 import '../../utils/app_state.dart';
 import '../../utils/price_data.dart';
@@ -25,21 +25,15 @@ class DeliverySummaryScreen extends StatefulWidget {
 }
 
 class _DeliverySummaryScreenState extends State<DeliverySummaryScreen> {
-  late Razorpay _razorpay;
   int _selectedAddressIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
   }
 
   @override
   void dispose() {
-    _razorpay.clear();
     super.dispose();
   }
 
@@ -56,38 +50,12 @@ class _DeliverySummaryScreenState extends State<DeliverySummaryScreen> {
     }
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) {
-    _finalizeOrder(response.paymentId ?? "MOCK_PAY_ID");
-  }
-
-  void _handlePaymentError(PaymentFailureResponse response) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment Failed: ${response.message}')),
-    );
-  }
-
-  void _handleExternalWallet(ExternalWalletResponse response) {}
-
   void _startPayment() {
-    var options = {
-      'key': 'rzp_test_MOCK_KEY', // MOCK Key for testing
-      'amount': (totalPayable * 100).toInt(),
-      'name': 'Silvra Investments',
-      'description': '${widget.requestedGrams}g ${widget.isGold ? "Gold" : "Silver"} Delivery',
-      'prefill': {
-        'contact': AppState().currentUser['phone'] ?? '',
-        'email': AppState().currentUser['email'] ?? '',
-      },
-      'external': {
-        'wallets': ['paytm']
-      }
-    };
-
-    try {
-      _razorpay.open(options);
-    } catch (e) {
-      debugPrint('Error: $e');
-    }
+    // Simulated payment for delivery using Cashfree
+    debugPrint("Simulating Cashfree Payment...");
+    Future.delayed(const Duration(seconds: 1), () {
+      _finalizeOrder("MOCK_CASHFREE_PAY_ID");
+    });
   }
 
   Future<void> _finalizeOrder(String paymentId) async {

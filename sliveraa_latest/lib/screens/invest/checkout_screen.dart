@@ -365,9 +365,10 @@ class CheckoutScreen extends StatelessWidget {
                 builder: (context) => PaymentScreen(
                   amount: totalAmount,
                   orderId: 'INTERNAL_${label.toUpperCase().replaceAll(' ', '_')}_PENDING',
+                  paymentSessionId: 'MOCK_SESSION_ID',
+                  environment: 'SANDBOX',
                   isGold: isGold,
                   grams: isGold ? 0.1 : 868.0,
-                  method: razorpayMethod,
                 ),
               ),
             );
@@ -468,8 +469,10 @@ class CheckoutScreen extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => PaymentScreen(
                     amount: totalAmount,
                     orderId: 'INTERNAL_CHECKOUT_PENDING',
+                    paymentSessionId: 'MOCK_SESSION_ID',
+                    environment: 'SANDBOX',
                     isGold: isGold,
-                    grams: isGold ? 0.1 : 868.0, // Matching the UI text on Line 76
+                    grams: isGold ? 0.1 : 868.0,
                   )),
                 );
               },

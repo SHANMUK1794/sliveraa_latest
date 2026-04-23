@@ -46,7 +46,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
         if (mounted) {
           if (response.data['success'] == true) {
             final orderId = response.data['orderId'];
-            final razorpayKeyId = response.data['razorpayKeyId'];
+            final paymentSessionId = response.data['paymentSessionId'];
+            final environment = response.data['cashfreeEnvironment'] ?? 'SANDBOX';
             final amount = response.data['amount'].toDouble();
             
             Navigator.push(
@@ -54,7 +55,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
               MaterialPageRoute(builder: (context) => PaymentScreen(
                 amount: amount,
                 orderId: orderId,
-                razorpayKey: razorpayKeyId,
+                paymentSessionId: paymentSessionId,
+                environment: environment,
                 isGold: widget.isGold,
                 grams: widget.grams,
               )),
@@ -77,14 +79,16 @@ class _SummaryScreenState extends State<SummaryScreen> {
         if (mounted) {
           if (response.data['success'] == true) {
             final orderId = response.data['orderId']?.toString();
-            final razorpayKeyId = response.data['razorpayKeyId']?.toString();
+            final paymentSessionId = response.data['paymentSessionId']?.toString();
+            final environment = response.data['cashfreeEnvironment']?.toString() ?? 'SANDBOX';
             
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => PaymentScreen(
                 amount: widget.amount,
                 orderId: orderId ?? '',
-                razorpayKey: razorpayKeyId,
+                paymentSessionId: paymentSessionId ?? '',
+                environment: environment,
                 isGold: widget.isGold,
                 grams: widget.grams,
               )),
