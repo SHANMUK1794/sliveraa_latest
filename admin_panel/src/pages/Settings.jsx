@@ -16,7 +16,7 @@ const Settings = () => {
           </h2>
           
           <div className="input-group">
-            <label className="input-label">Razorpay Live Key ID</label>
+            <label className="input-label">Cashfree Live App ID</label>
             <input type="password" className="input-field" placeholder="••••••••••••••" disabled style={{ opacity: 0.7 }} />
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Configured via .env on server</span>
           </div>

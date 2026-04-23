@@ -22,7 +22,7 @@ const Ledger = () => {
   };
 
   const filtered = transactions.filter(t => 
-    t.razorpayOrderId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    t.pgOrderId?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     t.user?.phoneNumber.includes(searchTerm)
   );
 
@@ -69,7 +69,7 @@ const Ledger = () => {
             <tbody>
               {filtered.map(t => (
                 <tr key={t.id}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{t.razorpayOrderId || t.id.slice(0, 12)}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{t.pgOrderId || t.id.slice(0, 12)}</td>
                   <td>
                     <div style={{ fontWeight: '600' }}>{t.user?.name || 'Unknown'}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t.user?.phoneNumber}</div>
