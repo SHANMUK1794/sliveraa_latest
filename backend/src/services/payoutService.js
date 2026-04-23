@@ -4,7 +4,7 @@ class PayoutService {
   constructor() {
     this.appId = process.env.CASHFREE_PAYOUT_APP_ID;
     this.secretKey = process.env.CASHFREE_PAYOUT_SECRET_KEY;
-    this.environment = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX';
+    this.environment = process.env.CASHFREE_PAYOUT_ENVIRONMENT || 'SANDBOX';
     
     // Cashfree Payout uses a different base URL than PG
     this.baseUrl = this.environment === 'PRODUCTION' 
