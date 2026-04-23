@@ -1,4 +1,4 @@
-package com.example.silveraa_application
+package com.silvra.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
