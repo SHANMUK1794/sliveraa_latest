@@ -7,7 +7,7 @@ const { createOrderSchema, verifyPaymentSchema } = require('../utils/schemas');
 
 class PaymentController {
   /**
-   * Create Razorpay Order for Adding Balance or Buying Metal
+   * Create Cashfree Order for Adding Balance or Buying Metal
    * Flutter payload: amount, assetType, grams, userId
    */
   async createOrder(req, res) {
@@ -16,6 +16,8 @@ class PaymentController {
     }
     try {
       const { userId } = req.user;
+      
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       
       // Validate
       const validated = createOrderSchema.parse({
@@ -34,8 +36,16 @@ class PaymentController {
         weight = baseAmount / pricePerGram;
       }
 
-      const amountPaise = Math.round(finalAmount * 100);
-      const order = await paymentService.createOrder(amountPaise);
+      const receipt = 'order_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      
+      const customer = {
+        id: `CUST_${userId}`,
+        phone: user.phoneNumber || '9999999999',
+        email: user.email || 'customer@silvra.in',
+        name: user.name || 'Silvra User'
+      };
+
+      const order = await paymentService.createOrder(finalAmount, customer, 'INR', receipt);
 
       // Create transaction record in pending state
       const transaction = await prisma.transaction.create({
@@ -45,7 +55,7 @@ class PaymentController {
           weight: weight || null,
           type: assetType ? 'BUY' : 'DEPOSIT',
           metalType: assetType || null,
-          razorpayOrderId: order.id,
+          pgOrderId: order.order_id,
           status: 'PENDING'
         }
       });
@@ -53,10 +63,11 @@ class PaymentController {
       res.json({
         success: true,
         message: 'Order created',
-        orderId: order.id,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID, // Return this for the frontend
-        amount: order.amount,
-        currency: order.currency,
+        orderId: order.order_id,
+        paymentSessionId: order.payment_session_id, // Cashfree requires this for Flutter SDK
+        cashfreeEnvironment: process.env.CASHFREE_ENVIRONMENT || 'SANDBOX',
+        amount: order.order_amount,
+        currency: order.order_currency,
         transactionId: transaction.id
       });
     } catch (error) {
@@ -72,53 +83,51 @@ class PaymentController {
   }
 
   /**
-   * Verify Razorpay Payment Signature and Complete Transaction
+   * Verify Cashfree Payment (usually called after SDK completes)
    */
   async verifyPayment(req, res) {
     if (!paymentService.isAvailable) {
       return res.status(501).json({ error: 'Not Implemented', message: 'Payment service is not configured' });
     }
     try {
-      const { userId } = req.user;
+      // For Cashfree, the frontend doesn't get a signature directly like Razorpay.
+      // The frontend SDK just returns order completion status.
+      // We should verify by calling the Cashfree Order API.
+      const { orderId } = req.body;
       
-      const validated = verifyPaymentSchema.parse({
-        ...req.body,
-        userId
-      });
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = validated;
+      if (!orderId) {
+        return res.status(400).json({ error: 'Missing orderId' });
+      }
 
-      const isValid = paymentService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
-      if (!isValid) return res.status(401).json({ error: 'Invalid payment signature' });
+      const orderInfo = await paymentService.getOrder(orderId);
+      
+      if (!orderInfo) {
+        return res.status(404).json({ error: 'Order not found in Payment Gateway' });
+      }
 
-      try {
-        const result = await this._fulfillOrder(razorpay_order_id, razorpay_payment_id);
+      if (orderInfo.order_status === 'PAID') {
+        const result = await this._fulfillOrder(orderId, orderInfo.cf_order_id || orderId);
         if (!result.success) {
-          return res.status(400).json({ error: result.message });
+          // If already processed, it's fine, we just tell the client it's successful
+          return res.json({ success: true, message: 'Payment verified' });
         }
-        res.json({ success: true, message: 'Payment verified and transaction completed' });
-      } catch (error) {
-        console.error('Verify Payment Database Error:', error);
-        res.status(500).json({ error: 'Internal Server Error', message: 'Failed to update transaction' });
+        return res.json({ success: true, message: 'Payment verified and transaction completed' });
+      } else {
+        return res.status(400).json({ error: 'Payment not successful yet' });
       }
     } catch (error) {
-      if (error.name === 'ZodError') {
-        return res.status(400).json({ 
-          error: 'Validation Error', 
-          details: error.errors.map(e => e.message) 
-        });
-      }
       console.error('Verify Payment Request Error:', error);
       res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
   }
 
   /**
-   * Internal Method to fulfill Razorpay order
+   * Internal Method to fulfill order
    */
-  async _fulfillOrder(razorpay_order_id, razorpay_payment_id) {
+  async _fulfillOrder(pg_order_id, pg_payment_id) {
     // Find and update transaction
     const transaction = await prisma.transaction.findUnique({
-      where: { razorpayOrderId: razorpay_order_id },
+      where: { pgOrderId: pg_order_id },
     });
 
     if (!transaction || transaction.status !== 'PENDING') {
@@ -131,7 +140,7 @@ class PaymentController {
         where: { id: transaction.id },
         data: {
           status: 'COMPLETED',
-          razorpayPaymentId: razorpay_payment_id
+          pgPaymentId: String(pg_payment_id)
         }
       });
 
@@ -176,43 +185,35 @@ class PaymentController {
   }
 
   /**
-   * Razorpay Webhook Handler
+   * Cashfree Webhook Handler
    */
   async webhookHandler(req, res) {
     try {
-      const crypto = require('crypto');
-      const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+      const signature = req.headers['x-webhook-signature'];
+      const timestamp = req.headers['x-webhook-timestamp'];
+      const rawBody = req.rawBody; // Make sure rawBody middleware is configured in app.js
       
-      if (!webhookSecret || webhookSecret === 'your_webhook_secret_here') {
-        return res.status(200).send('Webhook unconfigured, ignored');
+      if (!signature || !timestamp || !rawBody) {
+        return res.status(400).send('Missing webhook headers or raw body');
       }
 
-      // 1. Verify Signature
-      const signature = req.headers['x-razorpay-signature'];
-      if (!signature || !req.rawBody) {
-        return res.status(400).send('Missing signature or raw body');
-      }
+      const isValid = paymentService.verifyWebhookSignature(rawBody, signature, timestamp);
       
-      const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
-        .update(req.rawBody)
-        .digest('hex');
-      
-      if (expectedSignature !== signature) {
+      if (!isValid) {
         return res.status(401).send('Invalid Webhook Signature');
       }
       
-      // 2. Process Payload safely
       const payload = req.body;
-      const eventName = payload.event;
+      const eventName = payload.type; // CASHFREE webhook type (e.g., PAYMENT_SUCCESS_WEBHOOK)
       
-      if (eventName === 'payment.captured' || eventName === 'payment.authorized') {
-        const paymentEntity = payload.payload.payment.entity;
-        const razorpay_order_id = paymentEntity.order_id;
-        const razorpay_payment_id = paymentEntity.id;
+      if (eventName === 'PAYMENT_SUCCESS_WEBHOOK') {
+        const paymentEntity = payload.data.payment;
+        const orderEntity = payload.data.order;
+        const pg_order_id = orderEntity.order_id;
+        const pg_payment_id = paymentEntity.cf_payment_id;
         
-        if (razorpay_order_id && razorpay_payment_id) {
-           await this._fulfillOrder(razorpay_order_id, razorpay_payment_id);
+        if (pg_order_id && pg_payment_id) {
+           await this._fulfillOrder(pg_order_id, pg_payment_id);
         }
       }
       

@@ -1,96 +1,100 @@
-const Razorpay = require('razorpay');
+const axios = require('axios');
 const crypto = require('crypto');
 
 class PaymentService {
   constructor() {
-    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
-
-    if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
-      this.razorpay = new Razorpay({
-        key_id: RAZORPAY_KEY_ID,
-        key_secret: RAZORPAY_KEY_SECRET,
-      });
-    } else {
-      this.razorpay = null;
-      console.warn('PaymentService: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set. Payment features are disabled.');
-    }
+    this.appId = process.env.CASHFREE_APP_ID;
+    this.secretKey = process.env.CASHFREE_SECRET_KEY;
+    this.environment = process.env.CASHFREE_ENVIRONMENT || 'SANDBOX';
+    
+    this.baseUrl = this.environment === 'PRODUCTION' 
+      ? 'https://api.cashfree.com/pg' 
+      : 'https://sandbox.cashfree.com/pg';
   }
 
   get isAvailable() {
-    const keyId = process.env.RAZORPAY_KEY_ID;
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    
-    // Mock Mode logic
-    const isMock = keyId?.startsWith('rzp_test_MOCK') || 
-                   keyId === 'rzp_test_...' || 
-                   keySecret === 'your_razorpay_secret';
-    
-    // SECURITY: Disable mock mode if we are in production
-    if (process.env.NODE_ENV === 'production') {
-      return this.razorpay !== null;
-    }
-                   
-    return this.razorpay !== null || isMock;
+    // Return true if credentials are set
+    return Boolean(this.appId && this.secretKey);
+  }
+
+  getHeaders() {
+    return {
+      'x-api-version': '2023-08-01',
+      'x-client-id': this.appId,
+      'x-client-secret': this.secretKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
   }
 
   /**
-   * Create Razorpay Order
-   * @param {number} amount - Amount in paise (e.g., 10000 for 100 INR)
+   * Create Cashfree Order
+   * @param {number} amount - Amount in INR (Cashfree accepts floats like 10.50, not paise)
    * @param {string} currency - currency (default INR)
-   * @param {string} receipt - receipt id
+   * @param {string} receipt - receipt id / order id
+   * @param {object} customer - Customer Details { customer_id, customer_phone, customer_email, customer_name }
    * @returns {Promise<any>}
    */
-  async createOrder(amount, currency = 'INR', receipt = 'receipt_' + Date.now()) {
-    // Check if we should use Mock Mode
-    if (process.env.RAZORPAY_KEY_ID?.startsWith('rzp_test_MOCK')) {
-      console.log('PaymentService: Using Mock Mode for Order Creation');
-      return {
-        id: 'order_mock_' + Math.random().toString(36).substring(7),
-        amount,
-        currency,
-        receipt,
-        status: 'created'
-      };
-    }
-
-    if (!this.razorpay) {
+  async createOrder(amount, customer, currency = 'INR', receipt = 'receipt_' + Date.now()) {
+    if (!this.isAvailable) {
       throw new Error('Payment service is not configured');
     }
+
     try {
-      const order = await this.razorpay.orders.create({
-        amount,
-        currency,
-        receipt,
+      const response = await axios.post(`${this.baseUrl}/orders`, {
+        order_amount: amount,
+        order_currency: currency,
+        order_id: receipt,
+        customer_details: {
+          customer_id: customer.id || 'CUST_123',
+          customer_phone: customer.phone || '9999999999',
+          customer_email: customer.email || 'customer@example.com',
+          customer_name: customer.name || 'Customer'
+        },
+        order_meta: {
+          return_url: 'https://silvra.in/payment/status?order_id={order_id}',
+        }
+      }, {
+        headers: this.getHeaders()
       });
-      return order;
+
+      return response.data; // Includes payment_session_id
     } catch (error) {
-      console.error('Razorpay Create Order Error:', error);
+      console.error('Cashfree Create Order Error:', error.response?.data || error.message);
       throw new Error('Failed to create payment order');
     }
   }
 
   /**
-   * Verify Razorpay Payment Signature
-   * @param {string} orderId - Razorpay Order ID
-   * @param {string} paymentId - Razorpay Payment ID
-   * @param {string} signature - Razorpay Signature
-   * @returns {boolean}
+   * Fetch Cashfree Order by order_id
    */
-  verifySignature(orderId, paymentId, signature) {
-    // Check if we should use Mock Mode
-    if (orderId.startsWith('order_mock_')) {
-      console.log('PaymentService: Using Mock Mode for Signature Verification');
-      return true;
+  async getOrder(orderId) {
+    if (!this.isAvailable) return null;
+    
+    try {
+      const response = await axios.get(`${this.baseUrl}/orders/${orderId}`, {
+        headers: this.getHeaders()
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Cashfree Get Order Error:', error.response?.data || error.message);
+      return null;
     }
+  }
 
-    if (!this.razorpay) {
-      throw new Error('Payment service is not configured');
-    }
-    const text = orderId + '|' + paymentId;
+  /**
+   * Verify Webhook Signature
+   * @param {string} rawBody - Raw body of the webhook request
+   * @param {string} signature - x-webhook-signature header
+   * @param {string} timestamp - x-webhook-timestamp header
+   */
+  verifyWebhookSignature(rawBody, signature, timestamp) {
+    if (!this.isAvailable) throw new Error('Payment service is not configured');
+
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(text)
-      .digest('hex');
+      .createHmac('sha256', this.secretKey)
+      .update(timestamp + rawBody)
+      .digest('base64');
 
     return expectedSignature === signature;
   }

@@ -197,8 +197,8 @@ model Transaction {
   pricePerUnit    Float?            // price at time of transaction
   
   status          TransactionStatus @default(PENDING)
-  razorpayOrderId String?           @unique
-  razorpayPaymentId String?         @unique
+  pgOrderId       String?           @unique
+  pgPaymentId     String?           @unique
   savingsPlanId   String?           // Link to SIP plan if this is the first payment
   
   createdAt       DateTime          @default(now())
