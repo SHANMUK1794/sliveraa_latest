@@ -168,14 +168,18 @@ class PaymentStatusScreen extends StatelessWidget {
             ],
           ),
         ),
-        // Lottie Animation
+        // Animation or Icon
         SizedBox(
           width: 160,
           height: 160,
-          child: Lottie.network(
+          child: isSuccess ? Lottie.network(
             lottieUrl,
             repeat: false,
             fit: BoxFit.contain,
+          ) : const Icon(
+            Icons.cancel_rounded,
+            color: Color(0xFFEF4444),
+            size: 100,
           ),
         ),
       ],
