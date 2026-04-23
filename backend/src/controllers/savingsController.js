@@ -11,6 +11,7 @@ class SavingsController {
   async createPlan(req, res) {
     try {
       const { userId } = req.user;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       const validated = savingsPlanSchema.parse(req.body);
 
       // Check for existing active plan of same metal
@@ -47,14 +48,21 @@ class SavingsController {
         }
       });
 
-      // 2. Create Razorpay Order for the first installment
+      // 2. Create Cashfree Order for the first installment
       const symbol = validated.metalType === 'GOLD' ? 'XAU' : 'XAG';
       const pricePerGram = await priceService.getLivePrice(symbol);
-      const amountPaise = Math.round(validated.amount * 100);
       const baseAmount = validated.amount / 1.03; // Deduct 3% GST
       const weight = baseAmount / pricePerGram;
 
-      const order = await paymentService.createOrder(amountPaise);
+      const customer = {
+        id: `CUST_${userId}`,
+        phone: user.phoneNumber || '9999999999',
+        email: user.email || 'customer@silvra.in',
+        name: user.name || 'Silvra User'
+      };
+      
+      const receipt = 'sip_' + plan.id.substring(0, 8) + '_' + Date.now();
+      const order = await paymentService.createOrder(validated.amount, customer, 'INR', receipt);
 
       // 3. Create a PENDING transaction linked to this plan
       await prisma.transaction.create({
@@ -64,7 +72,7 @@ class SavingsController {
           weight: weight,
           type: 'BUY',
           metalType: validated.metalType,
-          razorpayOrderId: order.id,
+          pgOrderId: order.order_id,
           savingsPlanId: plan.id, // CRITICAL: This links the payment to activation
           status: 'PENDING'
         }
@@ -73,8 +81,9 @@ class SavingsController {
       res.status(201).json({ 
         success: true, 
         message: 'SIP Plan initiated. Complete payment to activate.', 
-        orderId: order.id,
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID, // Return this for the frontend
+        orderId: order.order_id,
+        paymentSessionId: order.payment_session_id, // Cashfree requires this for Flutter SDK
+        cashfreeEnvironment: process.env.CASHFREE_ENVIRONMENT || 'SANDBOX',
         planId: plan.id,
         amount: validated.amount
       });
