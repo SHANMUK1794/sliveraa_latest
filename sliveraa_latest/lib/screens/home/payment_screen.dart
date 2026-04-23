@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfdropcheckoutpayment.dart';
-import 'package:flutter_cashfree_pg_sdk/api/cfpaymentcomponents/cfdropcheckoutcomponent.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
 import 'package:flutter_cashfree_pg_sdk/api/cftheme/cftheme.dart';
@@ -63,13 +63,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
           .setPrimaryTextColor("#FFFFFF")
           .build();
 
-      var cfDropCheckoutPayment = CFDropCheckoutPaymentBuilder()
+      var cfWebCheckoutPayment = CFWebCheckoutPaymentBuilder()
           .setSession(session!)
           .setTheme(theme!)
-          .setComponent(CFDropCheckoutComponentBuilder().build())
           .build();
 
-      cfPaymentGatewayService.doPayment(cfDropCheckoutPayment);
+      cfPaymentGatewayService.doPayment(cfWebCheckoutPayment);
     } on CFException catch (e) {
       debugPrint("Cashfree initialization error: ${e.message}");
       _showError(e.message ?? 'Failed to open payment gateway');
