@@ -216,7 +216,7 @@ class AuthController {
     try {
       // Standardize input
       const data = {
-        phone: req.body.phone || req.body.phoneNumber,
+        phone: req.body.phone || req.body.phoneNumber || req.body.email,
         password: req.body.password
       };
 

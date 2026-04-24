@@ -258,6 +258,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildTransactionItem(Map<String, dynamic> t) {
     bool isBuy = t['type'] == 'BUY';
     String assetType = t['assetType'] ?? 'GOLD';
+    String txStatus = t['status'] ?? 'COMPLETED';
     
     // Default styling from backend model
     IconData icon = Icons.shopping_bag_outlined;
@@ -265,6 +266,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     Color bgColor = const Color(0xFFFEF3C7);
     String title = assetType == 'GOLD' ? 'Gold' : 'Silver';
     String status = isBuy ? 'Purchased' : 'Sold';
+
+    if (txStatus == 'FAILED') status = 'Failed';
+    if (txStatus == 'PENDING') status = 'Pending';
 
     if (t['type'] == 'WITHDRAWAL') {
       title = 'Withdrawal';
@@ -376,12 +380,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     Color bg;
     Color text;
 
-    if (status == 'Debited') {
-      bg = const Color(0xFFFEF3C7);
-      text = const Color(0xFFD97706);
-    } else if (status == 'Credited') {
+    if (status == 'Purchased' || status == 'Credited' || status == 'Sold' || status == 'Bank Transfer') {
       bg = const Color(0xFFDCFCE7);
       text = const Color(0xFF16A34A);
+    } else if (status == 'Failed') {
+      bg = const Color(0xFFFEE2E2);
+      text = const Color(0xFFEF4444);
+    } else if (status == 'Pending') {
+      bg = const Color(0xFFFEF3C7);
+      text = const Color(0xFFD97706);
     } else {
       bg = const Color(0xFFE2E8F0);
       text = const Color(0xFF475569);
@@ -411,7 +418,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       try {
         final dt = DateTime.parse(t['createdAt'].toString());
         if (dt.month == now.month && dt.year == now.year && t['type'] == 'BUY') {
-          total += (t['amount'] as num).toDouble();
+          if (t['status'] == null || t['status'] == 'COMPLETED') {
+            total += (t['amount'] as num).toDouble();
+          }
         }
       } catch (_) {}
     }
