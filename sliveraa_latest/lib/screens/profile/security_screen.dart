@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/app_state.dart';
 import '../../core/biometric_service.dart';
+import '../../core/api_service.dart';
+import '../onbording/onboarding_screen.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -70,6 +72,16 @@ class _SecurityScreenState extends State<SecurityScreen> {
               onTap: () {
                 // Future Implementation: Change Password Screen
               },
+            ),
+            const SizedBox(height: 32),
+            _buildSectionHeader('DANGER ZONE'),
+            const SizedBox(height: 12),
+            _buildSecurityOption(
+              icon: Icons.delete_forever_rounded,
+              title: 'Delete Account',
+              subtitle: 'Permanently remove all your data',
+              isDestructive: true,
+              onTap: () => _showDeleteAccountDialog(context),
             ),
             const SizedBox(height: 48),
             _buildSecurityNotice(),
@@ -165,6 +177,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    bool isDestructive = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -182,10 +195,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEF3E2),
+                color: isDestructive ? const Color(0xFFFEF2F2) : const Color(0xFFFEF3E2),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: AppColors.primaryBrownGold, size: 22),
+              child: Icon(icon, color: isDestructive ? const Color(0xFFEF4444) : AppColors.primaryBrownGold, size: 22),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -197,7 +210,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     style: GoogleFonts.manrope(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF111827),
+                      color: isDestructive ? const Color(0xFFEF4444) : const Color(0xFF111827),
                     ),
                   ),
                   Text(
@@ -239,6 +252,58 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 height: 1.5,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text('Delete Account', style: GoogleFonts.manrope(fontWeight: FontWeight.w800, color: const Color(0xFFEF4444))),
+        content: Text('Are you absolutely sure? This action cannot be undone. All your data, transactions, and KYC details will be permanently deleted from our servers.', 
+          style: GoogleFonts.inter(color: const Color(0xFF64748B), fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF64748B), fontWeight: FontWeight.w600)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // close dialog
+              try {
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator(color: Color(0xFFEF4444))),
+                );
+                
+                await ApiService().deleteAccount();
+                AppState().clear();
+                ApiService().clearToken();
+                
+                if (context.mounted) {
+                  Navigator.pop(context); // close loading
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                    (route) => false,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // close loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to delete account. Please contact support.')),
+                  );
+                }
+              }
+            },
+            child: Text('Delete Forever', style: GoogleFonts.inter(color: const Color(0xFFEF4444), fontWeight: FontWeight.w700)),
           ),
         ],
       ),

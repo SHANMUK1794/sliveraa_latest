@@ -177,6 +177,10 @@ class ApiService {
     });
   }
 
+  Future<Response> deleteAccount() async {
+    return await _dio.delete('profile/delete-account');
+  }
+
   // Price Methods
   Future<Response> getLivePrices() async {
     return await _dio.get('prices/live');

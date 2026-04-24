@@ -152,6 +152,29 @@ class UserController {
       res.status(500).json({ error: 'Failed to update password' });
     }
   }
+  /**
+   * Delete Account
+   */
+  async deleteAccount(req, res) {
+    const { userId } = req.user;
+    try {
+      await prisma.$transaction([
+        prisma.notification.deleteMany({ where: { userId } }),
+        prisma.transaction.deleteMany({ where: { userId } }),
+        prisma.kycDetail.deleteMany({ where: { userId } }),
+        prisma.reward.deleteMany({ where: { userId } }),
+        prisma.savingsPlan.deleteMany({ where: { userId } }),
+        prisma.deliveryRequest.deleteMany({ where: { userId } }),
+        prisma.address.deleteMany({ where: { userId } }),
+        prisma.bankAccount.deleteMany({ where: { userId } }),
+        prisma.user.delete({ where: { id: userId } })
+      ]);
+      res.json({ success: true, message: 'Account deleted successfully' });
+    } catch (error) {
+      console.error('Delete Account Error:', error);
+      res.status(500).json({ error: 'Failed to delete account' });
+    }
+  }
 }
 
 module.exports = new UserController();

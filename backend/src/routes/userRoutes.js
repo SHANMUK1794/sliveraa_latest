@@ -8,5 +8,6 @@ router.get('/me', authMiddleware, userController.getProfile);
 router.get('/transactions', authMiddleware, userController.getTransactions);
 router.patch('/update', authMiddleware, userController.updateProfile);
 router.patch('/update-password', authMiddleware, userController.updatePassword);
+router.delete('/delete-account', authMiddleware, userController.deleteAccount);
 
 module.exports = router;
